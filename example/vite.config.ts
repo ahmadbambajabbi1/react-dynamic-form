@@ -14,6 +14,8 @@ export default defineConfig({
   server: {
     port: 2025,
     open: true,
+    host: "localhost", // Explicitly set to localhost
+    strictPort: true, // Don't try other ports if 2025 is taken
   },
   test: {
     globals: true,
