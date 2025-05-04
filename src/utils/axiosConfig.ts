@@ -24,6 +24,8 @@ export const initConfig = (
     getSession = sessionFn;
   }
 
+  console.log({ sessionFn, userConfig });
+
   // Update Axios instance with new config
   Axios.defaults.baseURL = userConfig.api?.baseURL || "";
   Axios.defaults.headers = {
