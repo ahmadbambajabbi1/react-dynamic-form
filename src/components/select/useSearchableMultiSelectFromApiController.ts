@@ -1,3 +1,4 @@
+// src/components/select/useSearchableMultiSelectFromApiController.ts
 import { useState, useEffect, useCallback } from "react";
 import {
   SearchableMultiSelectFromApiProps,
@@ -5,6 +6,7 @@ import {
   SelectOption,
 } from "./types";
 import { useMultiSelectFromApiController } from "./useMultiSelectFromApiController";
+// Import our custom Axios instead of axios
 import Axios from "../../utils/axiosConfig";
 
 export const useSearchableMultiSelectFromApiController = (
@@ -43,6 +45,7 @@ export const useSearchableMultiSelectFromApiController = (
       setLoadingResults(true);
 
       try {
+        // Use our custom Axios instance
         const response = await Axios.get(apiUrl, {
           params: {
             ...params,

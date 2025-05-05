@@ -1,3 +1,4 @@
+// src/components/select/useSearchableSelectFromApiController.ts
 import { useState, useEffect, useCallback } from "react";
 import {
   SearchableSelectFromApiProps,
@@ -5,7 +6,8 @@ import {
   SelectOption,
 } from "./types";
 import { useSelectFromApiController } from "./useSelectFromApiController";
-import axios from "axios";
+// Import our custom Axios instead of axios
+import Axios from "../../utils/axiosConfig";
 
 export const useSearchableSelectFromApiController = (
   props: SearchableSelectFromApiProps
@@ -43,7 +45,8 @@ export const useSearchableSelectFromApiController = (
       setLoadingResults(true);
 
       try {
-        const response = await axios.get(apiUrl, {
+        // Use our custom Axios instance
+        const response = await Axios.get(apiUrl, {
           params: {
             ...params,
             [searchParam]: term,

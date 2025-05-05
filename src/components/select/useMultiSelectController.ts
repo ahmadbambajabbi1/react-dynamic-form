@@ -1,3 +1,4 @@
+// src/components/select/useMultiSelectController.ts
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   MultiSelectProps,
@@ -132,12 +133,12 @@ export const useMultiSelectController = (
     }
   }, [value]);
 
-  // Notify parent component of changes
+  // Notify parent component of changes - FIXED to prevent infinite loop
   useEffect(() => {
-    if (onChange) {
+    if (onChange && JSON.stringify(value) !== JSON.stringify(selectedValues)) {
       onChange(selectedValues);
     }
-  }, [selectedValues, onChange]);
+  }, [selectedValues, onChange, value]);
 
   // Generate display text for the input
   const getDisplayText = () => {

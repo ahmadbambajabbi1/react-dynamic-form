@@ -3,7 +3,14 @@ import React from "react";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
 import { Controller } from "../types";
 import { cn } from "../utils";
-import { MultiSelect, MultiSelectFromApi } from "./select";
+
+// Import all multi-select components
+import {
+  MultiSelect,
+  SearchableMultiSelect,
+  MultiSelectFromApi,
+  SearchableMultiSelectFromApi,
+} from "./select";
 
 // Import icons
 import { XIcon } from "../icons/XIcon";
@@ -32,54 +39,105 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
     disabled = false,
     apiUrl,
     transformResponse,
+    searchParam,
+    minSearchLength,
     maxSelections,
     className,
+    type,
   } = controller;
 
   const error = form.formState.errors[name]?.message as string;
 
   // Safely extract value from field
-  const value = field.value;
+  const value = field.value || [];
 
-  // Handle change event for select fields
+  // Handle change event for select fields with check to prevent infinite loops
   const handleChange = (newValue: any) => {
-    form.setValue(name, newValue, { shouldValidate: true, shouldDirty: true });
+    // Only update if the value actually changed
+    if (JSON.stringify(field.value) !== JSON.stringify(newValue)) {
+      form.setValue(name, newValue, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
   };
 
-  // Use API version if apiUrl is provided
-  if (apiUrl) {
-    return (
-      <MultiSelectFromApi
-        label={label}
-        placeholder={placeholder}
-        apiUrl={apiUrl}
-        transformResponse={transformResponse}
-        maxSelections={maxSelections}
-        value={value}
-        onChange={handleChange}
-        required={required}
-        disabled={disabled}
-        error={error}
-        className={className}
-      />
-    );
-  }
+  // Determine which MultiSelect component to use based on the controller type
+  switch (type) {
+    case "searchable-multi-select-from-api":
+      return (
+        <SearchableMultiSelectFromApi
+          label={label}
+          placeholder={placeholder}
+          apiUrl={apiUrl || ""}
+          transformResponse={transformResponse}
+          searchParam={searchParam}
+          minSearchLength={minSearchLength}
+          maxSelections={maxSelections}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+          // Handle errors gracefully by providing fallback options
+          options={options || []}
+        />
+      );
 
-  // Regular multi-select with local options
-  return (
-    <MultiSelect
-      label={label}
-      placeholder={placeholder}
-      options={Array.isArray(options) ? options : []}
-      maxSelections={maxSelections}
-      value={value}
-      onChange={handleChange}
-      required={required}
-      disabled={disabled}
-      error={error}
-      className={className}
-    />
-  );
+    case "multi-select-from-api":
+      return (
+        <MultiSelectFromApi
+          label={label}
+          placeholder={placeholder}
+          apiUrl={apiUrl || ""}
+          transformResponse={transformResponse}
+          maxSelections={maxSelections}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+          // Handle errors gracefully by providing fallback options
+          options={options || []}
+        />
+      );
+
+    case "searchable-multi-select":
+      return (
+        <SearchableMultiSelect
+          label={label}
+          placeholder={placeholder}
+          options={Array.isArray(options) ? options : []}
+          maxSelections={maxSelections}
+          minSearchLength={minSearchLength}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+        />
+      );
+
+    case "multi-select":
+    default:
+      return (
+        <MultiSelect
+          label={label}
+          placeholder={placeholder}
+          options={Array.isArray(options) ? options : []}
+          maxSelections={maxSelections}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+        />
+      );
+  }
 };
 
 export default MultiSelectController;

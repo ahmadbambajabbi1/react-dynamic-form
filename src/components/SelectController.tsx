@@ -3,15 +3,13 @@ import React from "react";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
 import { Controller } from "../types";
 import { cn } from "../utils";
+
+// Import all select components
 import {
   Select,
   SearchableSelect,
   SelectFromApi,
   SearchableSelectFromApi,
-  MultiSelect,
-  SearchableMultiSelect,
-  MultiSelectFromApi,
-  SearchableMultiSelectFromApi,
 } from "./select";
 
 // Import icons to fix "cannot find XIcon" etc. errors
@@ -43,8 +41,8 @@ export const SelectController: React.FC<SelectControllerProps> = ({
     transformResponse,
     searchParam,
     minSearchLength,
-    maxSelections,
     className,
+    type,
   } = controller;
 
   const error = form.formState.errors[name]?.message as string;
@@ -52,19 +50,25 @@ export const SelectController: React.FC<SelectControllerProps> = ({
   // Safely extract value from field
   const value = field.value;
 
-  // Handle change event for select fields
+  // Handle change event for select fields with check to prevent infinite loops
   const handleChange = (newValue: any) => {
-    form.setValue(name, newValue, { shouldValidate: true, shouldDirty: true });
+    // Only update if the value actually changed
+    if (JSON.stringify(field.value) !== JSON.stringify(newValue)) {
+      form.setValue(name, newValue, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
   };
 
-  // Use different components based on apiUrl
-  if (apiUrl) {
-    if (controller.type === "searchable-select-from-api") {
+  // Determine which Select component to use based on the controller type
+  switch (type) {
+    case "searchable-select-from-api":
       return (
         <SearchableSelectFromApi
           label={label}
           placeholder={placeholder}
-          apiUrl={apiUrl}
+          apiUrl={apiUrl || ""}
           transformResponse={transformResponse}
           searchParam={searchParam}
           minSearchLength={minSearchLength}
@@ -74,40 +78,61 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           disabled={disabled}
           error={error}
           className={className}
+          // Handle errors gracefully by providing fallback options
+          options={options || []}
         />
       );
-    }
 
-    return (
-      <SelectFromApi
-        label={label}
-        placeholder={placeholder}
-        apiUrl={apiUrl}
-        transformResponse={transformResponse}
-        value={value}
-        onChange={handleChange}
-        required={required}
-        disabled={disabled}
-        error={error}
-        className={className}
-      />
-    );
+    case "select-from-api":
+      return (
+        <SelectFromApi
+          label={label}
+          placeholder={placeholder}
+          apiUrl={apiUrl || ""}
+          transformResponse={transformResponse}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+          // Handle errors gracefully by providing fallback options
+          options={options || []}
+        />
+      );
+
+    case "searchable-select":
+      return (
+        <SearchableSelect
+          label={label}
+          placeholder={placeholder}
+          options={Array.isArray(options) ? options : []}
+          minSearchLength={minSearchLength}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+        />
+      );
+
+    case "select":
+    default:
+      return (
+        <Select
+          label={label}
+          placeholder={placeholder}
+          options={Array.isArray(options) ? options : []}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+        />
+      );
   }
-
-  // Regular select with local options
-  return (
-    <Select
-      label={label}
-      placeholder={placeholder}
-      options={Array.isArray(options) ? options : []}
-      value={value}
-      onChange={handleChange}
-      required={required}
-      disabled={disabled}
-      error={error}
-      className={className}
-    />
-  );
 };
 
 export default SelectController;

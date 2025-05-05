@@ -1,3 +1,4 @@
+// Updated FormElementHandler.tsx with all select types
 import React, { useEffect, useState } from "react";
 import { Controller } from "../types";
 import {
@@ -168,7 +169,11 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                 />
                               );
 
+                            // Basic select types
                             case "select":
+                            case "select-from-api":
+                            case "searchable-select":
+                            case "searchable-select-from-api":
                               return (
                                 <SelectController
                                   controller={controller}
@@ -177,18 +182,13 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                 />
                               );
 
+                            // Multi-select types
                             case "multi-select":
+                            case "multi-select-from-api":
+                            case "searchable-multi-select":
+                            case "searchable-multi-select-from-api":
                               return (
                                 <MultiSelectController
-                                  controller={controller}
-                                  field={field}
-                                  form={form}
-                                />
-                              );
-
-                            case "searchable-select":
-                              return (
-                                <SearchableSelectController
                                   controller={controller}
                                   field={field}
                                   form={form}

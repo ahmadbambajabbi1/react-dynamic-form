@@ -1,211 +1,66 @@
-// // src/examples/DynamicFormWithSelectExample.tsx
-// import React from "react";
-// import { z } from "zod";
-// import DynamicForm from "../../../src/DynamicForm";
-import DynamicForm from "react-dynamic-form-builder";
-import { Controller, ControllerType } from "../../../src/types";
-
-// export const DynamicFormWithSelectExample: React.FC = () => {
-//   // Define form schema with Zod
-//   const formSchema = z.object({
-//     firstName: z.string().min(2, "First name must be at least 2 characters"),
-//     lastName: z.string().min(2, "Last name must be at least 2 characters"),
-//     email: z.string().email("Please enter a valid email address"),
-//     country: z.string().min(1, "Please select a country"),
-//     interests: z
-//       .array(z.string())
-//       .min(1, "Please select at least one interest"),
-//     programmingLanguages: z.array(z.string()).optional(),
-//     department: z.string().min(1, "Please select a department"),
-//     team: z.string().min(1, "Please select a team"),
-//   });
-
-//   // Define controllers
-//   const controllers: Controller[] = [
-//     {
-//       type: ControllerType.TEXT,
-//       name: "firstName",
-//       label: "First Name",
-//       placeholder: "Enter your first name",
-//       required: true,
-//       colSpan: 6,
-//     },
-//     {
-//       type: ControllerType.TEXT,
-//       name: "lastName",
-//       label: "Last Name",
-//       placeholder: "Enter your last name",
-//       required: true,
-//       colSpan: 6,
-//     },
-//     {
-//       type: ControllerType.EMAIL,
-//       name: "email",
-//       label: "Email",
-//       placeholder: "Enter your email address",
-//       required: true,
-//       colSpan: 12,
-//     },
-//     {
-//       type: ControllerType.SELECT,
-//       name: "country",
-//       label: "Country",
-//       placeholder: "Select your country",
-//       required: true,
-//       colSpan: 12,
-//       options: [
-//         { value: "us", label: "United States" },
-//         { value: "ca", label: "Canada" },
-//         { value: "mx", label: "Mexico" },
-//         { value: "uk", label: "United Kingdom" },
-//         { value: "fr", label: "France" },
-//         { value: "de", label: "Germany" },
-//         { value: "jp", label: "Japan" },
-//         { value: "au", label: "Australia" },
-//         { value: "br", label: "Brazil" },
-//         { value: "in", label: "India" },
-//       ],
-//     },
-//     {
-//       type: ControllerType.SEARCHABLE_MULTI_SELECT,
-//       name: "interests",
-//       label: "Interests",
-//       placeholder: "Select your interests",
-//       searchPlaceholder: "Search interests...",
-//       required: true,
-//       colSpan: 12,
-//       options: [
-//         { value: "music", label: "Music" },
-//         { value: "sports", label: "Sports" },
-//         { value: "reading", label: "Reading" },
-//         { value: "cooking", label: "Cooking" },
-//         { value: "travel", label: "Travel" },
-//         { value: "art", label: "Art" },
-//         { value: "photography", label: "Photography" },
-//         { value: "gaming", label: "Gaming" },
-//         { value: "dancing", label: "Dancing" },
-//         { value: "gardening", label: "Gardening" },
-//         { value: "hiking", label: "Hiking" },
-//         { value: "movies", label: "Movies & TV Shows" },
-//         { value: "technology", label: "Technology" },
-//         { value: "fashion", label: "Fashion" },
-//         { value: "writing", label: "Writing" },
-//       ],
-//     },
-//     {
-//       type: ControllerType.MULTI_SELECT_FROM_API,
-//       name: "programmingLanguages",
-//       label: "Programming Languages",
-//       placeholder: "Select programming languages",
-//       apiUrl: "https://api.example.com/programming-languages",
-//       transformResponse: (data) =>
-//         data.map((lang: any) => ({
-//           value: lang.id,
-//           label: lang.name,
-//         })),
-//       colSpan: 12,
-//     },
-//     {
-//       type: ControllerType.SELECT_FROM_API,
-//       name: "department",
-//       label: "Department",
-//       placeholder: "Select department",
-//       required: true,
-//       apiUrl: "https://api.example.com/departments",
-//       transformResponse: (data) =>
-//         data.map((dept: any) => ({
-//           value: dept.id,
-//           label: dept.name,
-//         })),
-//       colSpan: 6,
-//     },
-//     {
-//       type: ControllerType.SEARCHABLE_SELECT_FROM_API,
-//       name: "team",
-//       label: "Team",
-//       placeholder: "Select team",
-//       searchPlaceholder: "Search teams...",
-//       required: true,
-//       apiUrl: "https://api.example.com/teams",
-//       transformResponse: (data) =>
-//         data.map((team: any) => ({
-//           value: team.id,
-//           label: team.name,
-//         })),
-//       searchParam: "query",
-//       minSearchLength: 2,
-//       colSpan: 6,
-//     },
-//   ];
-
-//   // Form submission handler
-//   const handleFormSubmit = async ({
-//     values,
-//     setError,
-//     reset,
-//   }: {
-//     values: z.infer<typeof formSchema>;
-//     setError: any;
-//     reset: () => void;
-//   }) => {
-//     console.log("Form submitted with values:", values);
-//     // In a real application, you would submit to an API here
-//     // For this example, we'll just show the values in the console
-//     // and simulate a successful submission
-//     alert("Form submitted successfully!");
-//     reset();
-//   };
-
-//   return (
-//     <div className="p-6 max-w-4xl mx-auto">
-//       <h1 className="text-2xl font-bold mb-6">User Profile Form</h1>
-//       <DynamicForm
-//         controllers={controllers}
-//         formSchema={formSchema}
-//         handleSubmit={handleFormSubmit}
-//         props={{
-//           form: {
-//             className: "space-y-6",
-//           },
-//           grid: {
-//             className: "grid-cols-12 gap-6",
-//           },
-//           controller: {
-//             className: "mb-1",
-//           },
-//         }}
-//         submitBtn={{
-//           label: "Save Profile",
-//           className: "w-full bg-blue-600 hover:bg-blue-700",
-//         }}
-//       />
-//     </div>
-//   );
-// };
-
-// export default DynamicFormWithSelectExample;
-
-// src/examples/DynamicFormExample.tsx
-import React from "react";
+import React, { useState } from "react";
 import { z } from "zod";
-// import DynamicForm from '../DynamicForm';
-// import { Controller, ControllerType } from '../types';
+import DynamicForm from "react-dynamic-form-builder";
+// import { Controller, ControllerType } from "../../../src/types";
+import {
+  Controller,
+  ControllerType,
+  DynamicFormProps,
+} from "../../../src/types";
+
+// Mock API response transformer
+const transformDepartmentsResponse = (data: any) => {
+  // In real usage, this would transform your API data to the format needed by select
+  // For our example, we're simulating the API response directly
+  return data.map((dept: any) => ({
+    value: dept.id,
+    label: dept.name,
+  }));
+};
+
+// Mock team members transformer
+const transformTeamMembersResponse = (data: any) => {
+  return data.map((user: any) => ({
+    value: user.id,
+    label: `${user.firstName} ${user.lastName}`,
+  }));
+};
 
 const DynamicFormExample: React.FC = () => {
   // Define form schema with zod
   const formSchema = z.object({
+    // Regular fields
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Please enter a valid email address"),
+
+    // Regular selects
     country: z.string().min(1, "Please select a country"),
+    region: z.string().optional(),
+
+    // Multi-selects
     interests: z
       .array(z.string())
       .min(1, "Please select at least one interest"),
-    department: z.string().optional(),
-    teamMembers: z.array(z.string()).optional(),
+    languages: z.array(z.string()).optional(),
+
+    // API selects
+    department: z.string().min(1, "Please select a department"),
+    role: z.string().optional(),
+
+    // API multi-selects
+    teamMembers: z
+      .array(z.string())
+      .min(1, "Please select at least one team member"),
+    projects: z.array(z.string()).optional(),
   });
 
+  // State to track submission status
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [formData, setFormData] = useState<any>(null);
+
   // Define the controllers for the form
-  const controllers = [
+  const controllers: Controller[] = [
+    // Text inputs
     {
       type: ControllerType.TEXT,
       name: "name",
@@ -222,13 +77,15 @@ const DynamicFormExample: React.FC = () => {
       required: true,
       colSpan: 12,
     },
+
+    // Regular Select
     {
       type: ControllerType.SELECT,
       name: "country",
       label: "Country",
       placeholder: "Select your country",
       required: true,
-      colSpan: 12,
+      colSpan: 6,
       options: [
         { value: "us", label: "United States" },
         { value: "ca", label: "Canada" },
@@ -237,16 +94,41 @@ const DynamicFormExample: React.FC = () => {
         { value: "fr", label: "France" },
         { value: "de", label: "Germany" },
         { value: "jp", label: "Japan" },
+        { value: "au", label: "Australia" },
+        { value: "br", label: "Brazil" },
+        { value: "in", label: "India" },
       ],
     },
+
+    // Searchable Select
     {
-      type: ControllerType.SEARCHABLE_MULTI_SELECT,
+      type: ControllerType.SEARCHABLE_SELECT,
+      name: "region",
+      label: "Region",
+      placeholder: "Select your region",
+      searchPlaceholder: "Search regions...",
+      colSpan: 6,
+      options: [
+        { value: "northeast", label: "Northeast" },
+        { value: "southeast", label: "Southeast" },
+        { value: "midwest", label: "Midwest" },
+        { value: "southwest", label: "Southwest" },
+        { value: "west", label: "West" },
+        { value: "pacific", label: "Pacific" },
+        { value: "alaska", label: "Alaska" },
+        { value: "hawaii", label: "Hawaii" },
+        { value: "territories", label: "U.S. Territories" },
+      ],
+    },
+
+    // Multi-Select
+    {
+      type: ControllerType.MULTI_SELECT,
       name: "interests",
       label: "Interests",
       placeholder: "Select your interests",
-      searchPlaceholder: "Search interests...",
       required: true,
-      colSpan: 12,
+      colSpan: 6,
       options: [
         { value: "tech", label: "Technology" },
         { value: "science", label: "Science" },
@@ -262,47 +144,158 @@ const DynamicFormExample: React.FC = () => {
         { value: "nature", label: "Nature & Outdoors" },
       ],
     },
+
+    // Searchable Multi-Select
+    {
+      type: ControllerType.SEARCHABLE_MULTI_SELECT,
+      name: "languages",
+      label: "Languages",
+      placeholder: "Select languages you speak",
+      searchPlaceholder: "Search languages...",
+      colSpan: 6,
+      options: [
+        { value: "en", label: "English" },
+        { value: "es", label: "Spanish" },
+        { value: "fr", label: "French" },
+        { value: "de", label: "German" },
+        { value: "it", label: "Italian" },
+        { value: "pt", label: "Portuguese" },
+        { value: "ru", label: "Russian" },
+        { value: "zh", label: "Chinese (Mandarin)" },
+        { value: "ja", label: "Japanese" },
+        { value: "ar", label: "Arabic" },
+        { value: "hi", label: "Hindi" },
+        { value: "bn", label: "Bengali" },
+        { value: "ko", label: "Korean" },
+        { value: "tr", label: "Turkish" },
+        { value: "vi", label: "Vietnamese" },
+      ],
+    },
+
+    // API-based Select
     {
       type: ControllerType.SELECT_FROM_API,
       name: "department",
       label: "Department",
       placeholder: "Select department",
+      required: true,
       colSpan: 6,
-      apiUrl: "https://api.example.com/departments",
-      transformResponse: (data: any) =>
-        data.map((dept: any) => ({
-          value: dept.id,
-          label: dept.name,
-        })),
+      apiUrl: "http://localhost:1993/test/see",
+      options: [
+        { value: "eng", label: "Engineering" },
+        { value: "des", label: "Design" },
+        { value: "prod", label: "Product" },
+        { value: "mktg", label: "Marketing" },
+        { value: "sales", label: "Sales" },
+        { value: "hr", label: "Human Resources" },
+        { value: "fin", label: "Finance" },
+        { value: "legal", label: "Legal" },
+      ],
     },
+
+    // Searchable API-based Select
     {
-      type: ControllerType.SEARCHABLE_MULTI_SELECT_FROM_API,
+      type: ControllerType.SEARCHABLE_SELECT_FROM_API,
+      name: "role",
+      label: "Role",
+      placeholder: "Select role",
+      searchPlaceholder: "Search roles...",
+      colSpan: 6,
+      apiUrl: "http://localhost:1993/test/see",
+      // transformResponse: (data) =>
+      //   data.map((role: any) => ({
+      //     value: role.id,
+      //     label: role.title,
+      //   })),
+      searchParam: "query",
+      minSearchLength: 2,
+      // Mock data for demo
+      options: [
+        { value: "dev", label: "Software Developer" },
+        { value: "sre", label: "Site Reliability Engineer" },
+        { value: "pm", label: "Product Manager" },
+        { value: "ux", label: "UX Designer" },
+        { value: "ui", label: "UI Designer" },
+        { value: "qa", label: "Quality Assurance" },
+        { value: "data", label: "Data Scientist" },
+        { value: "devops", label: "DevOps Engineer" },
+        { value: "mgr", label: "Engineering Manager" },
+      ],
+    },
+
+    // API-based Multi-Select
+    {
+      type: ControllerType.MULTI_SELECT_FROM_API,
       name: "teamMembers",
       label: "Team Members",
       placeholder: "Select team members",
-      searchPlaceholder: "Search members...",
+      required: true,
       colSpan: 6,
-      apiUrl: "https://api.example.com/users",
-      transformResponse: (data) =>
-        data.map((user: any) => ({
-          value: user.id,
-          label: `${user.firstName} ${user.lastName}`,
-        })),
-      searchParam: "query",
+      apiUrl: "http://localhost:1993/test/see",
+      // transformResponse: transformTeamMembersResponse,
+      // Mock data for demo
+      options: [
+        { value: "user1", label: "Alex Johnson" },
+        { value: "user2", label: "Sam Thompson" },
+        { value: "user3", label: "Taylor Brown" },
+        { value: "user4", label: "Morgan Williams" },
+        { value: "user5", label: "Casey Davis" },
+        { value: "user6", label: "Jordan Miller" },
+        { value: "user7", label: "Riley Wilson" },
+        { value: "user8", label: "Quinn Lee" },
+      ],
+    },
+
+    // Searchable API-based Multi-Select
+    {
+      type: ControllerType.SEARCHABLE_MULTI_SELECT_FROM_API,
+      name: "projects",
+      label: "Projects",
+      placeholder: "Select projects",
+      searchPlaceholder: "Search projects...",
+      colSpan: 6,
+      apiUrl: "http://localhost:1993/test/see",
+      // transformResponse: (data) =>
+      //   data.map((project: any) => ({
+      //     value: project.id,
+      //     label: project.name,
+      //   })),
+      searchParam: "name",
       minSearchLength: 2,
+      // Mock data for demo
+      options: [
+        { value: "proj1", label: "Website Redesign" },
+        { value: "proj2", label: "Mobile App Development" },
+        { value: "proj3", label: "API Integration" },
+        { value: "proj4", label: "Data Migration" },
+        { value: "proj5", label: "CRM Implementation" },
+        { value: "proj6", label: "E-commerce Platform" },
+        { value: "proj7", label: "Internal Tools" },
+        { value: "proj8", label: "Analytics Dashboard" },
+      ],
     },
   ];
 
   // Handle form submission
-  const handleSubmit = async ({ values, setError, reset }: any) => {
+  const handleSubmit = async ({
+    values,
+    setError,
+    reset,
+  }: {
+    values: z.infer<typeof formSchema>;
+    setError: any;
+    reset: () => void;
+  }) => {
     try {
       console.log("Form submitted with values:", values);
 
-      // Simulate API call
+      // In a real app, you would submit to your API here
+      // For this example, we'll just simulate a successful submission after a delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Show success message
-      alert("Form submitted successfully!");
+      setIsSubmitted(true);
+      setFormData(values);
 
       // Reset form
       reset();
@@ -317,66 +310,59 @@ const DynamicFormExample: React.FC = () => {
     }
   };
 
+  // Render the form or success message
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">User Profile Form</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        Dynamic Form with Select Controls
+      </h1>
 
-      <DynamicForm
-        controllers={controllers}
-        formSchema={formSchema}
-        handleSubmit={handleSubmit}
-        props={{
-          form: {
-            className: "space-y-6",
-          },
-          grid: {
-            className: "gap-6",
-          },
-          controller: {
-            className: "mb-1",
-          },
-        }}
-        submitBtn={{
-          label: "Save Profile",
-          className: "w-full bg-blue-600 hover:bg-blue-700",
-        }}
-      />
+      {isSubmitted ? (
+        <div className="bg-green-50 border border-green-200 rounded-md p-6 mb-6">
+          <h2 className="text-lg font-semibold text-green-800 mb-2">
+            Form Submitted Successfully
+          </h2>
+          <p className="text-green-700 mb-4">
+            Thank you for your submission. Here's what we received:
+          </p>
+
+          <pre className="bg-white p-4 rounded-md border overflow-auto max-h-80 text-sm">
+            {JSON.stringify(formData, null, 2)}
+          </pre>
+
+          <button
+            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            onClick={() => setIsSubmitted(false)}
+          >
+            Submit Another Response
+          </button>
+        </div>
+      ) : (
+        <DynamicForm
+          controllers={controllers}
+          formSchema={formSchema}
+          handleSubmit={handleSubmit}
+          props={{
+            form: {
+              className: "space-y-6",
+            },
+            grid: {
+              className: "grid-cols-12 gap-6",
+            },
+            controller: {
+              className: "mb-1",
+            },
+          }}
+          submitBtn={{
+            label: "Submit Form",
+            className: "w-full bg-blue-600 hover:bg-blue-700",
+          }}
+        />
+      )}
     </div>
   );
 };
 
 export default DynamicFormExample;
 
-/*
-when multi select is click to select the compoent keep rerending fast and the app crash. please update that.
-MultiSelectController.tsx:46 Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
-overrideMethod @ hook.js:608
-printWarning @ chunk-NUMECXU6.js?v=e91faa4f:521
-error @ chunk-NUMECXU6.js?v=e91faa4f:505
-checkForNestedUpdates @ chunk-NUMECXU6.js?v=e91faa4f:19665
-scheduleUpdateOnFiber @ chunk-NUMECXU6.js?v=e91faa4f:18533
-dispatchSetState @ chunk-NUMECXU6.js?v=e91faa4f:12403
-callback @ chunk-Q3AWV5S2.js?v=e91faa4f:1938
-next @ chunk-Q3AWV5S2.js?v=e91faa4f:1305
-next @ chunk-Q3AWV5S2.js?v=e91faa4f:396
-trigger @ chunk-Q3AWV5S2.js?v=e91faa4f:1256
-await in trigger
-setFieldValue @ chunk-Q3AWV5S2.js?v=e91faa4f:1124
-setValue @ chunk-Q3AWV5S2.js?v=e91faa4f:1152
-handleChange @ MultiSelectController.tsx:46
-(anonymous) @ useMultiSelectController.ts:138
-commitHookEffectListMount @ chunk-NUMECXU6.js?v=e91faa4f:16915
-commitPassiveMountOnFiber @ chunk-NUMECXU6.js?v=e91faa4f:18156
-commitPassiveMountEffects_complete @ chunk-NUMECXU6.js?v=e91faa4f:18129
-commitPassiveMountEffects_begin @ chunk-NUMECXU6.js?v=e91faa4f:18119
-commitPassiveMountEffects @ chunk-NUMECXU6.js?v=e91faa4f:18109
-flushPassiveEffectsImpl @ chunk-NUMECXU6.js?v=e91faa4f:19490
-flushPassiveEffects @ chunk-NUMECXU6.js?v=e91faa4f:19447
-commitRootImpl @ chunk-NUMECXU6.js?v=e91faa4f:19416
-commitRoot @ chunk-NUMECXU6.js?v=e91faa4f:19277
-performSyncWorkOnRoot @ chunk-NUMECXU6.js?v=e91faa4f:18895
-flushSyncCallbacks @ chunk-NUMECXU6.js?v=e91faa4f:9119
-(anonymous) @ chunk-NUMECXU6.js?v=e91faa4f:18627Understand this error
-9[Violation] 'click' handler took <N>ms
-141MultiSelectController.tsx:46 Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
-*/
+// the search from api has to wait for  debouce and also when the search from api when the input hs text it keep refrshig and keep shaking the screen the fethc has to be done by onchnage value.

@@ -40,7 +40,7 @@ const SearchableSelectController: React.FC<SearchableSelectControllerProps> = ({
   const error = form.formState.errors[name]?.message as string;
 
   // Safely extract value from field
-  const value = field.value;
+  const value = field?.value;
 
   // Handle change event for select fields
   const handleChange = (newValue: any) => {

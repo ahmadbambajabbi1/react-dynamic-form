@@ -20,6 +20,7 @@ export interface BaseSelectProps {
   size?: "sm" | "md" | "lg";
   clearable?: boolean;
   loading?: boolean;
+  options?: any;
 }
 
 export interface SelectControllerProps extends BaseSelectProps {
