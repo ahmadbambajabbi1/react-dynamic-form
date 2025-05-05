@@ -1,6 +1,10 @@
-export const Spinner = () => (
+import { cn } from "../utils";
+type SpinerProps = {
+  className?: string;
+};
+export const Spinner = ({ className }: SpinerProps) => (
   <svg
-    className="animate-spin"
+    className={cn("animate-spin", className)}
     xmlns="http://www.w3.org/2000/svg"
     width="16"
     height="16"

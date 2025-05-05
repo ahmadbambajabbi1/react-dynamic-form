@@ -1,4 +1,7 @@
-export const CheckIcon = () => (
+type ChevronDownProps = {
+  className?: string;
+};
+export const CheckIcon = ({ className }: ChevronDownProps) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="16"
@@ -9,6 +12,7 @@ export const CheckIcon = () => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    className={className}
   >
     <polyline points="20 6 9 17 4 12" />
   </svg>

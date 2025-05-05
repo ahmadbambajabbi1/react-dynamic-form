@@ -1,89 +1,54 @@
-// src/components/select/Select.tsx
-import React, { useState, useRef, useEffect } from "react";
-import { SelectControllerProps, SelectOption } from "./types";
+import React, { useRef, useEffect, useState } from "react";
+import { useSelectController } from "./useSelectController";
+import { SelectProps } from "./types";
+import { determineDropdownPosition } from "../../utils/dropdown";
+
+// Import icons
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
-import { Spinner } from "../../icons/Spinner";
+import { CheckIcon } from "../../icons/CheckIcon";
 
-export const Select: React.FC<SelectControllerProps> = ({
-  label,
-  placeholder = "Select an option",
-  options = [],
-  value = null,
-  onChange,
-  disabled = false,
-  required = false,
-  error,
-  clearable = true,
-  loading = false,
-  className = "",
-  size = "md",
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("bottom");
-  const menuRef = useRef<HTMLDivElement>(null);
+export const Select: React.FC<SelectProps> = (props) => {
+  const {
+    label,
+    placeholder = "Select an option",
+    disabled = false,
+    required = false,
+    error,
+    showError = true,
+    clearable = true,
+    className = "",
+    size = "md",
+  } = props;
+
+  const {
+    selectedOption,
+    isOpen,
+    toggleMenu,
+    selectOption,
+    clearSelection,
+    menuProps,
+    inputProps,
+    options,
+  } = useSelectController(props);
+
   const triggerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
 
-  // Find the currently selected option
-  const selectedOption = options.find((opt) => opt.value === value) || null;
-
-  // Handle clicks outside to close the dropdown
+  // Update dropdown position when it's opened, using the utility function
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        menuRef.current &&
-        triggerRef.current &&
-        !menuRef.current.contains(e.target as Node) &&
-        !triggerRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
-
-  // Determine dropdown position (top or bottom)
-  const toggleDropdown = () => {
-    if (!isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const dropdownHeight = 250; // Approximate max height of dropdown
-
-      setMenuPosition(
-        spaceBelow < dropdownHeight && spaceAbove > spaceBelow
-          ? "top"
-          : "bottom"
+    if (isOpen && triggerRef.current) {
+      setPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
       );
     }
+  }, [isOpen]);
 
-    setIsOpen(!disabled && !isOpen);
-  };
-
-  // Handle selection of an option
-  const handleSelect = (option: SelectOption) => {
-    if (onChange) {
-      onChange(option.value as string);
-    }
-    setIsOpen(false);
-  };
-
-  // Handle clearing the selection
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onChange) {
-      onChange(null);
-    }
-  };
-
-  // Size classes for the select component
+  // Size variants
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
@@ -92,15 +57,15 @@ export const Select: React.FC<SelectControllerProps> = ({
 
   return (
     <div className={`select-container w-full ${className}`}>
+      {/* Only render the label if it's provided */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-1">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-600 ml-1">*</span>}
         </label>
       )}
 
       <div className="relative">
-        {/* Trigger Element */}
         <div
           ref={triggerRef}
           className={`
@@ -114,9 +79,9 @@ export const Select: React.FC<SelectControllerProps> = ({
                 : "bg-white hover:border-gray-400"
             }
           `}
-          onClick={toggleDropdown}
+          onClick={() => !disabled && toggleMenu()}
         >
-          <div className="flex-1 truncate">
+          <div className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap">
             {selectedOption ? (
               <span>{selectedOption.label}</span>
             ) : (
@@ -124,73 +89,69 @@ export const Select: React.FC<SelectControllerProps> = ({
             )}
           </div>
 
-          <div className="flex items-center ml-2">
-            {loading ? (
-              <Spinner />
-            ) : (
-              <>
-                {selectedOption && clearable && (
-                  <button
-                    type="button"
-                    className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-                    onClick={handleClear}
-                  >
-                    <XIcon />
-                  </button>
-                )}
-                <span
-                  className={`text-gray-400 transition-transform duration-200 ${
-                    isOpen ? "rotate-180" : ""
-                  }`}
-                >
-                  <ChevronDown />
-                </span>
-              </>
+          <div className="flex-shrink-0 ml-1 text-gray-400">
+            {selectedOption && clearable && !disabled && (
+              <button
+                type="button"
+                className="p-1 hover:text-gray-600"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearSelection();
+                }}
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
             )}
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${
+                isOpen ? "rotate-180" : ""
+              }`}
+            />
           </div>
+
+          {/* Hidden input for form control */}
+          <input type="text" className="sr-only" {...inputProps} />
         </div>
 
-        {/* Error Message */}
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {/* Only show error if showError prop is true */}
+        {showError && error && (
+          <p className="mt-1 text-sm text-red-500">{error}</p>
+        )}
 
-        {/* Dropdown Menu */}
         {isOpen && !disabled && (
           <div
-            ref={menuRef}
+            ref={menuProps.ref}
             className={`
-              absolute z-50 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${menuPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"}
+              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
+              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
             `}
           >
             {options.length === 0 ? (
-              <div className="p-3 text-sm text-gray-500 text-center">
+              <div className="p-2 text-gray-500 text-center">
                 No options available
               </div>
             ) : (
-              <ul className="py-1">
+              <div className="py-1">
                 {options.map((option) => (
-                  <li
-                    key={option.value}
+                  <div
+                    key={option.value as string}
                     className={`
-                      px-3 py-2 cursor-pointer text-sm hover:bg-gray-100
-                      ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}
+                      flex items-center px-3 py-2 cursor-pointer
                       ${
                         selectedOption?.value === option.value
                           ? "bg-blue-50 text-blue-700"
-                          : "text-gray-700"
+                          : "hover:bg-gray-50"
                       }
                     `}
-                    onClick={() => !option.disabled && handleSelect(option)}
+                    onClick={() => selectOption(option)}
                   >
-                    <div className="flex items-center">
-                      {option.icon && (
-                        <span className="mr-2">{option.icon}</span>
-                      )}
-                      {option.label}
-                    </div>
-                  </li>
+                    <span>{option.label}</span>
+                    {selectedOption?.value === option.value && (
+                      <CheckIcon className="h-4 w-4 ml-auto text-blue-600" />
+                    )}
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         )}

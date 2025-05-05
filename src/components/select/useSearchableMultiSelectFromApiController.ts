@@ -1,12 +1,11 @@
 // src/components/select/useSearchableMultiSelectFromApiController.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   SearchableMultiSelectFromApiProps,
   SearchableMultiSelectFromApiControllerReturn,
   SelectOption,
 } from "./types";
 import { useMultiSelectFromApiController } from "./useMultiSelectFromApiController";
-// Import our custom Axios instead of axios
 import Axios from "../../utils/axiosConfig";
 
 export const useSearchableMultiSelectFromApiController = (
@@ -23,25 +22,35 @@ export const useSearchableMultiSelectFromApiController = (
   } = props;
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredOptions, setFilteredOptions] = useState<SelectOption[]>([]);
+  const [filteredOptions, setFilteredOptions] = useState<SelectOption[]>(
+    props.options || []
+  );
   const [loadingResults, setLoadingResults] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousSearchRef = useRef<string>("");
 
   // Use the base API controller
   const baseApiMultiSelect = useMultiSelectFromApiController({
     apiUrl,
     params,
     transformResponse,
+    options: props.options || [],
     ...multiSelectProps,
   });
 
   // Search function with API call
   const searchOptions = useCallback(
     async (term: string) => {
-      if (term.length < minSearchLength) {
-        setFilteredOptions(baseApiMultiSelect.options);
+      // Don't search if term is too short or identical to previous search
+      if (term.length < minSearchLength || term === previousSearchRef.current) {
+        if (term.length < minSearchLength) {
+          setFilteredOptions(baseApiMultiSelect.options);
+        }
         return;
       }
 
+      // Store current search term to prevent duplicate searches
+      previousSearchRef.current = term;
       setLoadingResults(true);
 
       try {
@@ -53,11 +62,20 @@ export const useSearchableMultiSelectFromApiController = (
           },
         });
 
-        const searchResults = transformResponse(response.data);
+        // Process the response data
+        let searchResults;
+        if (typeof transformResponse === "function") {
+          searchResults = transformResponse(response.data);
+        } else if (Array.isArray(response.data)) {
+          searchResults = response.data;
+        } else {
+          searchResults = [];
+        }
+
         setFilteredOptions(searchResults);
       } catch (err) {
         console.error("Error searching options:", err);
-        // Fallback to client-side filtering on error
+        // Fall back to client-side filtering if API search fails
         setFilteredOptions(
           baseApiMultiSelect.options.filter((option) =>
             option.label.toLowerCase().includes(term.toLowerCase())
@@ -77,27 +95,42 @@ export const useSearchableMultiSelectFromApiController = (
     ]
   );
 
-  // Debounced search effect
+  // Properly debounced search effect
+  const handleSearchChange = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+
+      // Clear existing timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Don't create a new timeout for empty or too-short searches
+      if (term.length < minSearchLength) {
+        setFilteredOptions(baseApiMultiSelect.options);
+        setLoadingResults(false);
+        return;
+      }
+
+      // Set loading state immediately for better UX
+      setLoadingResults(true);
+
+      // Create new debounced search
+      searchTimeoutRef.current = setTimeout(() => {
+        searchOptions(term);
+      }, debounceMs);
+    },
+    [searchOptions, minSearchLength, debounceMs, baseApiMultiSelect.options]
+  );
+
+  // Clean up on unmount
   useEffect(() => {
-    if (searchTerm.length < minSearchLength) {
-      setFilteredOptions(baseApiMultiSelect.options);
-      return;
-    }
-
-    const handler = setTimeout(() => {
-      searchOptions(searchTerm);
-    }, debounceMs);
-
     return () => {
-      clearTimeout(handler);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
     };
-  }, [
-    searchTerm,
-    searchOptions,
-    debounceMs,
-    minSearchLength,
-    baseApiMultiSelect.options,
-  ]);
+  }, []);
 
   // Override input props for search functionality
   const inputProps = {
@@ -106,7 +139,7 @@ export const useSearchableMultiSelectFromApiController = (
       ? searchTerm
       : baseApiMultiSelect.inputProps.value,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchTerm(e.target.value);
+      handleSearchChange(e.target.value);
       if (!baseApiMultiSelect.isOpen) {
         baseApiMultiSelect.openMenu();
       }
@@ -120,13 +153,14 @@ export const useSearchableMultiSelectFromApiController = (
   useEffect(() => {
     if (!baseApiMultiSelect.isOpen) {
       setSearchTerm("");
+      setFilteredOptions(baseApiMultiSelect.options);
     }
-  }, [baseApiMultiSelect.isOpen]);
+  }, [baseApiMultiSelect.isOpen, baseApiMultiSelect.options]);
 
   return {
     ...baseApiMultiSelect,
     searchTerm,
-    setSearchTerm,
+    setSearchTerm: handleSearchChange, // Use the debounced handler
     filteredOptions,
     loadingResults,
     inputProps,

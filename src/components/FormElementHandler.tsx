@@ -1,4 +1,3 @@
-// Updated FormElementHandler.tsx with all select types
 import React, { useEffect, useState } from "react";
 import { Controller } from "../types";
 import {
@@ -169,27 +168,39 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                 />
                               );
 
-                            // Basic select types
+                            // All select types - passing modified controller to prevent duplicate labels
                             case "select":
                             case "select-from-api":
                             case "searchable-select":
                             case "searchable-select-from-api":
                               return (
                                 <SelectController
-                                  controller={controller}
+                                  controller={{
+                                    ...controller,
+                                    // Remove label to prevent duplication in child components
+                                    label: undefined,
+                                    // Remove error display in child component
+                                    showError: false,
+                                  }}
                                   field={field}
                                   form={form}
                                 />
                               );
 
-                            // Multi-select types
+                            // All multi-select types - passing modified controller to prevent duplicate labels
                             case "multi-select":
                             case "multi-select-from-api":
                             case "searchable-multi-select":
                             case "searchable-multi-select-from-api":
                               return (
                                 <MultiSelectController
-                                  controller={controller}
+                                  controller={{
+                                    ...controller,
+                                    // Remove label to prevent duplication in child components
+                                    label: undefined,
+                                    // Remove error display in child component
+                                    showError: false,
+                                  }}
                                   field={field}
                                   form={form}
                                 />

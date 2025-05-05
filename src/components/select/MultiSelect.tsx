@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useMultiSelectController } from "./useMultiSelectController";
-import { MultiSelectProps } from "./types";
+import { SelectOption, MultiSelectProps } from "./types";
+import { cn } from "../../utils";
+
+// Import icons
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { CheckIcon } from "../../icons/CheckIcon";
@@ -12,6 +15,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
     disabled = false,
     required = false,
     error,
+    showError = true,
     clearable = true,
     className = "",
     size = "md",
@@ -30,22 +34,83 @@ export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
     options,
   } = useMultiSelectController(props);
 
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+
+  // Update dropdown position when it's opened
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      // Calculate position based on available space
+      const rect = triggerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 250; // Approximate max height
+
+      setPosition(
+        spaceBelow < dropdownHeight && spaceAbove > spaceBelow
+          ? "top"
+          : "bottom"
+      );
+    }
+  }, [isOpen]);
+
+  // Size variants
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
     lg: "h-12 text-lg",
   };
+
+  // Create a container for selected options
+  const SelectedItemsContainer = () => {
+    if (selectedOptions.length === 0) {
+      return (
+        <div className="flex-grow text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
+          {placeholder}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1 flex-grow overflow-hidden">
+        {selectedOptions.map((option) => (
+          <div
+            key={option.value as string}
+            className="bg-blue-100 text-blue-800 rounded-md px-2 py-0.5 flex items-center gap-1 text-sm"
+          >
+            <span className="truncate">{option.label}</span>
+            {!disabled && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeOption(option);
+                }}
+                className="text-blue-500 hover:text-blue-700"
+              >
+                <XIcon className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className={`multi-select-container w-full ${className}`}>
+      {/* Only render the label if it's provided and showLabel is true */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-1">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-600 ml-1">*</span>}
         </label>
       )}
 
       <div className="relative">
         <div
+          ref={triggerRef}
           className={`
             flex items-center border rounded-md px-3 relative cursor-pointer
             ${sizeClasses[size]}
@@ -59,121 +124,87 @@ export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
           `}
           onClick={() => !disabled && toggleMenu()}
         >
-          {selectedOptions.length > 0 ? (
-            <div className="flex flex-wrap gap-1 py-1 max-w-full overflow-hidden">
-              {selectedOptions.length <= 3 ? (
-                selectedOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className="flex items-center bg-blue-100 text-blue-800 rounded px-2 py-0.5 text-sm"
-                  >
-                    <span className="truncate">{option.label}</span>
-                    <button
-                      type="button"
-                      className="ml-1 text-blue-500 hover:text-blue-700 focus:outline-none"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeOption(option);
-                      }}
-                    >
-                      <XIcon />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-700">
-                  {selectedOptions.length} items selected
-                </div>
-              )}
-            </div>
-          ) : (
-            <input
-              {...inputProps}
-              className="block w-full h-full outline-none bg-transparent cursor-pointer"
-              placeholder={placeholder}
-              readOnly
-              disabled={disabled}
-            />
-          )}
+          <SelectedItemsContainer />
 
-          <div className="flex items-center ml-2">
-            {selectedOptions.length > 0 && clearable && (
+          <div className="flex-shrink-0 ml-1 text-gray-400">
+            {selectedOptions.length > 0 && clearable && !disabled && (
               <button
                 type="button"
-                className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="p-1 hover:text-gray-600"
                 onClick={(e) => {
                   e.stopPropagation();
                   clearAll();
                 }}
               >
-                <XIcon />
+                <XIcon className="h-4 w-4" />
               </button>
             )}
-            <span
-              className={`text-gray-400 transition-transform duration-200 ${
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${
                 isOpen ? "rotate-180" : ""
               }`}
-            >
-              <ChevronDown />
-            </span>
+            />
           </div>
+
+          {/* Hidden input for form control - Fixed TypeScript errors */}
+          <input
+            type="text"
+            className="sr-only"
+            // TypeScript safe approach - don't access potentially missing properties
+            {...inputProps}
+          />
         </div>
 
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {/* Only show error if showError prop is true */}
+        {showError && error && (
+          <p className="mt-1 text-sm text-red-500">{error}</p>
+        )}
 
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
             className={`
               absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${
-                menuProps.position === "top"
-                  ? "bottom-full mb-1"
-                  : "top-full mt-1"
-              }
+              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
             `}
           >
             {options.length === 0 ? (
-              <div className="p-3 text-sm text-gray-500 text-center">
+              <div className="p-2 text-gray-500 text-center">
                 No options available
               </div>
             ) : (
-              <ul className="py-1">
+              <div className="py-1">
                 {options.map((option) => (
-                  <li
-                    key={option.value}
+                  <div
+                    key={option.value as string}
                     className={`
-                      px-3 py-2 cursor-pointer text-sm hover:bg-gray-100
-                      ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}
+                      flex items-center px-3 py-2 cursor-pointer
                       ${
                         isSelected(option)
                           ? "bg-blue-50 text-blue-700"
-                          : "text-gray-700"
+                          : "hover:bg-gray-50"
                       }
                     `}
-                    onClick={() => !option.disabled && selectOption(option)}
+                    onClick={() => selectOption(option)}
                   >
-                    <div className="flex items-center">
-                      <div
-                        className={`
-                        w-4 h-4 mr-3 flex-shrink-0 border rounded
+                    <div
+                      className={`
+                        w-4 h-4 rounded border mr-2 flex items-center justify-center
                         ${
                           isSelected(option)
-                            ? "bg-blue-500 border-blue-500 text-white"
+                            ? "bg-blue-600 border-blue-600"
                             : "border-gray-300"
                         }
                       `}
-                      >
-                        {isSelected(option) && <CheckIcon />}
-                      </div>
-                      {option.icon && (
-                        <span className="mr-2">{option.icon}</span>
+                    >
+                      {isSelected(option) && (
+                        <CheckIcon className="h-3 w-3 text-white" />
                       )}
-                      {option.label}
                     </div>
-                  </li>
+                    <span>{option.label}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         )}
@@ -181,3 +212,5 @@ export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
     </div>
   );
 };
+
+export default MultiSelect;

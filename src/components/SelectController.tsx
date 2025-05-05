@@ -29,7 +29,6 @@ export const SelectController: React.FC<SelectControllerProps> = ({
   field,
   form,
 }) => {
-  // Extract relevant props from controller
   const {
     name = "",
     label,
@@ -121,7 +120,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
     default:
       return (
         <Select
-          label={label}
+          label={label as string}
           placeholder={placeholder}
           options={Array.isArray(options) ? options : []}
           value={value}

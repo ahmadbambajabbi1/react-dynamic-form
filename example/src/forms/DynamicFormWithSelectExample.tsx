@@ -70,6 +70,22 @@ const DynamicFormExample: React.FC = () => {
       colSpan: 12,
     },
     {
+      type: ControllerType.DATE,
+      name: "date",
+      label: "date",
+      placeholder: "Enter date",
+      required: true,
+      colSpan: 12,
+    },
+    {
+      type: ControllerType.TIME,
+      name: "time",
+      label: "time",
+      placeholder: "Enter time",
+      required: true,
+      colSpan: 12,
+    },
+    {
       type: ControllerType.EMAIL,
       name: "email",
       label: "Email Address",
@@ -77,8 +93,6 @@ const DynamicFormExample: React.FC = () => {
       required: true,
       colSpan: 12,
     },
-
-    // Regular Select
     {
       type: ControllerType.SELECT,
       name: "country",
@@ -364,5 +378,3 @@ const DynamicFormExample: React.FC = () => {
 };
 
 export default DynamicFormExample;
-
-// the search from api has to wait for  debouce and also when the search from api when the input hs text it keep refrshig and keep shaking the screen the fethc has to be done by onchnage value.

@@ -1,12 +1,11 @@
 // src/components/select/useSearchableSelectFromApiController.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   SearchableSelectFromApiProps,
   SearchableSelectFromApiControllerReturn,
   SelectOption,
 } from "./types";
 import { useSelectFromApiController } from "./useSelectFromApiController";
-// Import our custom Axios instead of axios
 import Axios from "../../utils/axiosConfig";
 
 export const useSearchableSelectFromApiController = (
@@ -23,25 +22,35 @@ export const useSearchableSelectFromApiController = (
   } = props;
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredOptions, setFilteredOptions] = useState<SelectOption[]>([]);
+  const [filteredOptions, setFilteredOptions] = useState<SelectOption[]>(
+    props.options || []
+  );
   const [loadingResults, setLoadingResults] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousSearchRef = useRef<string>("");
 
-  // Use the base API controller
+  // Use the base API controller but disable its auto-fetching
   const baseApiSelect = useSelectFromApiController({
     apiUrl,
     params,
     transformResponse,
+    options: props.options || [],
     ...selectProps,
   });
 
   // Search function with API call
   const searchOptions = useCallback(
     async (term: string) => {
-      if (term.length < minSearchLength) {
-        setFilteredOptions(baseApiSelect.options);
+      // Don't search if term is too short or identical to previous search
+      if (term.length < minSearchLength || term === previousSearchRef.current) {
+        if (term.length < minSearchLength) {
+          setFilteredOptions(baseApiSelect.options);
+        }
         return;
       }
 
+      // Store current search term to prevent duplicate searches
+      previousSearchRef.current = term;
       setLoadingResults(true);
 
       try {
@@ -53,11 +62,20 @@ export const useSearchableSelectFromApiController = (
           },
         });
 
-        const searchResults = transformResponse(response.data);
+        // Process the response data
+        let searchResults;
+        if (typeof transformResponse === "function") {
+          searchResults = transformResponse(response.data);
+        } else if (Array.isArray(response.data)) {
+          searchResults = response.data;
+        } else {
+          searchResults = [];
+        }
+
         setFilteredOptions(searchResults);
       } catch (err) {
         console.error("Error searching options:", err);
-        // Fallback to client-side filtering on error
+        // Fall back to client-side filtering if API search fails
         setFilteredOptions(
           baseApiSelect.options.filter((option) =>
             option.label.toLowerCase().includes(term.toLowerCase())
@@ -77,27 +95,42 @@ export const useSearchableSelectFromApiController = (
     ]
   );
 
-  // Debounced search effect
+  // Properly debounced search effect
+  const handleSearchChange = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+
+      // Clear existing timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Don't create a new timeout for empty or too-short searches
+      if (term.length < minSearchLength) {
+        setFilteredOptions(baseApiSelect.options);
+        setLoadingResults(false);
+        return;
+      }
+
+      // Set loading state immediately for better UX
+      setLoadingResults(true);
+
+      // Create new debounced search
+      searchTimeoutRef.current = setTimeout(() => {
+        searchOptions(term);
+      }, debounceMs);
+    },
+    [searchOptions, minSearchLength, debounceMs, baseApiSelect.options]
+  );
+
+  // Clean up on unmount
   useEffect(() => {
-    if (searchTerm.length < minSearchLength) {
-      setFilteredOptions(baseApiSelect.options);
-      return;
-    }
-
-    const handler = setTimeout(() => {
-      searchOptions(searchTerm);
-    }, debounceMs);
-
     return () => {
-      clearTimeout(handler);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
     };
-  }, [
-    searchTerm,
-    searchOptions,
-    debounceMs,
-    minSearchLength,
-    baseApiSelect.options,
-  ]);
+  }, []);
 
   // Override input props for search functionality
   const inputProps = {
@@ -106,7 +139,7 @@ export const useSearchableSelectFromApiController = (
       ? searchTerm
       : baseApiSelect.selectedOption?.label || "",
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchTerm(e.target.value);
+      handleSearchChange(e.target.value);
       if (!baseApiSelect.isOpen) {
         baseApiSelect.openMenu();
       }
@@ -120,13 +153,14 @@ export const useSearchableSelectFromApiController = (
   useEffect(() => {
     if (!baseApiSelect.isOpen) {
       setSearchTerm("");
+      setFilteredOptions(baseApiSelect.options);
     }
-  }, [baseApiSelect.isOpen]);
+  }, [baseApiSelect.isOpen, baseApiSelect.options]);
 
   return {
     ...baseApiSelect,
     searchTerm,
-    setSearchTerm,
+    setSearchTerm: handleSearchChange, // Use the debounced handler
     filteredOptions,
     loadingResults,
     inputProps,

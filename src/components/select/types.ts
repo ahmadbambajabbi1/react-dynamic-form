@@ -23,9 +23,14 @@ export interface BaseSelectProps {
   options?: any;
 }
 
+export interface SelectProps extends SelectControllerProps {
+  showError?: boolean;
+}
+
 export interface SelectControllerProps extends BaseSelectProps {
   options: SelectOption[];
   defaultValue?: string | null;
+  showError?: boolean;
 }
 
 export interface SelectFromApiControllerProps extends BaseSelectProps {
@@ -66,7 +71,9 @@ export interface SearchableMultiSelectProps
 
 export interface SearchableMultiSelectFromApiProps
   extends MultiSelectFromApiProps,
-    SearchableSelectFromApiProps {}
+    SearchableSelectFromApiProps {
+  showError?: boolean;
+}
 
 // Hook return types
 export interface SelectControllerReturn {
