@@ -2,13 +2,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import { FormControllerProps } from "../../types";
+import { Controller } from "../../types";
 import countriesPhoneData, { CountryPhoneData } from "./data/countries";
 import { cn } from "../../utils";
 
 type PhoneNumberControllerProps = {
   field: ControllerRenderProps<z.TypeOf<any>, any>;
-  controller: FormControllerProps;
+  controller: Controller;
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
 

@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { ControllerRenderProps } from "react-hook-form";
 import { z } from "zod";
-import { FormControllerProps } from "../../types";
+import { Controller } from "../../types";
 import {
   format,
   isValid,
@@ -16,7 +16,7 @@ import {
 
 type SingleDatePickerProps = {
   field: ControllerRenderProps<z.TypeOf<any>, any>;
-  controller?: FormControllerProps;
+  controller?: Controller;
   onClose?: () => void;
 };
 
@@ -106,7 +106,7 @@ const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
             isSelectable &&
             controller?.disabled &&
             typeof controller.disabled === "function" &&
-            controller.disabled(day);
+            (controller as any)?.disabled(day);
 
           return (
             <button

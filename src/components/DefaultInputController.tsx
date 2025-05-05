@@ -2,12 +2,12 @@
 import React from "react";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import { FormControllerProps } from "../types";
+import { Controller } from "../types";
 import { cn } from "../utils";
 
 type DefaultInputControllerProps = {
   field: ControllerRenderProps<z.TypeOf<any>, any>;
-  controller: FormControllerProps;
+  controller: Controller;
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
 

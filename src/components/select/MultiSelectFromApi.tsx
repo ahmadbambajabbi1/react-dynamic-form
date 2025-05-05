@@ -1,6 +1,10 @@
 import React from "react";
 import { MultiSelectFromApiProps } from "./types";
 import { useMultiSelectFromApiController } from "./useMultiSelectFromApiController";
+import { XIcon } from "../../icons/XIcon";
+import { ChevronDown } from "../../icons/ChevronDown";
+import { Spinner } from "../../icons/Spinner";
+import { CheckIcon } from "../../icons/CheckIcon";
 
 export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
   props

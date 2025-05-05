@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FormControllerProps, PropsPropsType } from "../types";
+import { Controller } from "../types";
 import {
   UseFormReturn,
   useWatch,
@@ -12,7 +12,7 @@ import { z } from "zod";
 import { cn, generateFieldId } from "../utils";
 
 // Import form control components
-import SelectController from "./SelectController";
+import { SelectController } from "./SelectController";
 import TextareaController from "./TextareaController";
 import CheckBoxController from "./CheckBoxController";
 import DefaultInputController from "./DefaultInputController";
@@ -24,9 +24,9 @@ import DateHandler from "./DateHandler";
 import PhoneNumberController from "./PhoneNumber/PhoneNumberController";
 
 type FormElementHandlerProps = {
-  controller: FormControllerProps;
+  controller: Controller;
   form: UseFormReturn<any, any>;
-  props?: PropsPropsType;
+  props?: any;
 };
 
 /**
@@ -44,9 +44,7 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
   });
 
   // State for dynamically mapped controllers
-  const [mappedControllers, setMappedControllers] = useState<
-    FormControllerProps[]
-  >([]);
+  const [mappedControllers, setMappedControllers] = useState<Controller[]>([]);
 
   // Handle dynamic controllers that are mapped based on a value
   useEffect(() => {
@@ -202,12 +200,14 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                 <TextareaController
                                   controller={controller}
                                   field={field}
+                                  name={controller.name || ""}
+                                  form={form}
                                 />
                               );
 
                             case "group-checkbox":
                               return controller?.groupCheckbox?.map(
-                                (checkbox, index) => (
+                                (checkbox: any, index: any) => (
                                   <React.Fragment
                                     key={`${index}-${checkbox?.label}-${checkbox?.name}`}
                                   >
@@ -224,6 +224,11 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                       baseClassName="flex flex-wrap gap-4"
                                       checkBoxController={checkbox}
                                       field={field}
+                                      name={checkbox?.name}
+                                      controller={controller}
+                                      type={checkbox?.type}
+                                      colSpan={checkbox?.colSpan}
+                                      {...checkbox}
                                     />
                                   </React.Fragment>
                                 )
@@ -235,6 +240,7 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                   form={form}
                                   checkBoxController={controller}
                                   field={field}
+                                  name={controller.name || ""}
                                 />
                               );
 
@@ -308,7 +314,7 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                 </p>
                 <div className="space-y-4" {...props?.groupcontrollerBase}>
                   {mappedController?.groupControllers?.map(
-                    (groupController, groupIndex) => (
+                    (groupController: any, groupIndex: any) => (
                       <FormElementHandler
                         key={`${index}-${groupIndex}-${groupController?.name}`}
                         controller={groupController}

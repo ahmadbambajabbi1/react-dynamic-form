@@ -183,7 +183,7 @@ const StepsHandler: React.FC<StepsHandlerProps> = ({
                 : `Step ${activeStep + 1}`}
             </h3>
             <NormalHandler
-              controllers={steps && steps[activeStep]?.controllers}
+              controllers={steps && (steps[activeStep]?.controllers as any)}
               form={form}
               props={props}
             />

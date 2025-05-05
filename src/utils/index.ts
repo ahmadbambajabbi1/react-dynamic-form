@@ -1,6 +1,6 @@
 import { ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { FormControllerProps } from "../types";
+import { Controller } from "../types";
 
 /**
  * Combines class names with Tailwind's merge function
@@ -13,17 +13,17 @@ export function cn(...inputs: ClassValue[]) {
  * Initialize default values for a form based on controllers
  */
 export const initializeDefaultValues = (
-  controllers: FormControllerProps[]
+  controllers: Controller[]
 ): Record<string, any> => {
   return controllers.reduce((acc: Record<string, any>, controller) => {
     if ("groupControllers" in controller && controller.groupControllers) {
-      controller.groupControllers.forEach((field) => {
+      controller.groupControllers.forEach((field: any) => {
         if (field.name) {
           acc[field.name] = field.defaultValue || "";
         }
       });
     } else {
-      const field = controller as FormControllerProps;
+      const field = controller as Controller;
       if (field.name) {
         acc[field.name] = field.defaultValue || "";
       }
@@ -39,15 +39,15 @@ export const initializeDefaultValuesFromSteps = (
   steps: any[]
 ): Record<string, any> => {
   return steps.reduce((acc: Record<string, any>, step) => {
-    step.controllers.forEach((controller: FormControllerProps) => {
+    step.controllers.forEach((controller: Controller) => {
       if ("groupControllers" in controller && controller.groupControllers) {
-        controller.groupControllers.forEach((field) => {
+        controller.groupControllers.forEach((field: any) => {
           if (field.name) {
             acc[field.name] = field.defaultValue || "";
           }
         });
       } else {
-        const field = controller as FormControllerProps;
+        const field = controller as Controller;
         if (field.name) {
           acc[field.name] = field.defaultValue || "";
         }
@@ -61,13 +61,13 @@ export const initializeDefaultValuesFromSteps = (
  * Filter controllers based on visibility condition
  */
 export const filterVisibleControllers = (
-  controllers: FormControllerProps[] | undefined,
+  controllers: Controller[] | undefined,
   formValues: Record<string, any>
-): FormControllerProps[] => {
+): Controller[] => {
   if (!controllers) return [];
 
   return controllers.filter((controller) => {
-    const isVisible = (ctrl: FormControllerProps) => {
+    const isVisible = (ctrl: Controller) => {
       if (ctrl.visible !== undefined) {
         if (typeof ctrl.visible === "function") {
           return ctrl.visible(formValues);

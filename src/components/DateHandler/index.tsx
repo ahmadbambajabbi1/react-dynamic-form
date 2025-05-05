@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ControllerRenderProps } from "react-hook-form";
 import { z } from "zod";
-import { FormControllerProps } from "../../types";
+import { Controller } from "../../types";
 import { cn } from "../../utils";
 import {
   format,
@@ -26,7 +26,7 @@ export interface DateRange {
 
 type DateHandlerProps = {
   field: ControllerRenderProps<z.TypeOf<any>, any>;
-  controller: FormControllerProps;
+  controller: Controller;
 };
 
 const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {

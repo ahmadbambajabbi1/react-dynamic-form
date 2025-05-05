@@ -139,7 +139,7 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
   if (verify) {
     return (
       <OttpInputHandler
-        apiOptions={apiOptions}
+        apiOptions={apiOptions as any}
         verifyingDataProps={verifyingData}
       />
     );
@@ -157,10 +157,14 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
           form={form}
           props={props}
           steps={steps}
-          stepPreview={stepPreview}
+          stepPreview={stepPreview as any}
         />
       ) : (
-        <NormalHandler controllers={controllers} props={props} form={form} />
+        <NormalHandler
+          controllers={controllers as any}
+          props={props}
+          form={form}
+        />
       )}
 
       {!verify &&

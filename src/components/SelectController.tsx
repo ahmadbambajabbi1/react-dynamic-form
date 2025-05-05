@@ -1,6 +1,8 @@
-// src/components/dynamic-form/components/SelectController.tsx
+// src/components/SelectController.tsx
 import React from "react";
-import { useFormContext } from "react-hook-form";
+import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
+import { Controller } from "../types";
+import { cn } from "../utils";
 import {
   Select,
   SearchableSelect,
@@ -12,139 +14,100 @@ import {
   SearchableMultiSelectFromApi,
 } from "./select";
 
-// Base props for all select controllers
-type BaseSelectControllerProps = {
-  name: string;
-  label?: string;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  helperText?: string;
-  Component: React.ComponentType<any>;
-  [key: string]: any;
+// Import icons to fix "cannot find XIcon" etc. errors
+import { XIcon } from "../icons/XIcon";
+import { ChevronDown } from "../icons/ChevronDown";
+import { CheckIcon } from "../icons/CheckIcon";
+import { Spinner } from "../icons/Spinner";
+
+type SelectControllerProps = {
+  controller: Controller;
+  field: ControllerRenderProps<any, any>;
+  form: UseFormReturn<any, any>;
 };
 
-// Reusable props type for all select controllers
-type SelectControllerProps = Omit<BaseSelectControllerProps, "Component">;
-
-// Base controller component
-const BaseSelectController: React.FC<BaseSelectControllerProps> = ({
-  name,
-  label,
-  placeholder,
-  required,
-  disabled,
-  helperText,
-  Component,
-  ...rest
+export const SelectController: React.FC<SelectControllerProps> = ({
+  controller,
+  field,
+  form,
 }) => {
-  const { formState, watch, setValue } = useFormContext();
-  const { errors } = formState;
-  const error = errors[name]?.message as string;
-  const value = watch(name);
+  // Extract relevant props from controller
+  const {
+    name = "",
+    label,
+    placeholder,
+    options = [],
+    required = false,
+    disabled = false,
+    apiUrl,
+    transformResponse,
+    searchParam,
+    minSearchLength,
+    maxSelections,
+    className,
+  } = controller;
 
-  // Handle onChange for both single and multi select
+  const error = form.formState.errors[name]?.message as string;
+
+  // Safely extract value from field
+  const value = field.value;
+
+  // Handle change event for select fields
   const handleChange = (newValue: any) => {
-    setValue(name, newValue, { shouldValidate: true, shouldDirty: true });
+    form.setValue(name, newValue, { shouldValidate: true, shouldDirty: true });
   };
 
-  return (
-    <div className="form-control w-full">
-      <Component
+  // Use different components based on apiUrl
+  if (apiUrl) {
+    if (controller.type === "searchable-select-from-api") {
+      return (
+        <SearchableSelectFromApi
+          label={label}
+          placeholder={placeholder}
+          apiUrl={apiUrl}
+          transformResponse={transformResponse}
+          searchParam={searchParam}
+          minSearchLength={minSearchLength}
+          value={value}
+          onChange={handleChange}
+          required={required}
+          disabled={disabled}
+          error={error}
+          className={className}
+        />
+      );
+    }
+
+    return (
+      <SelectFromApi
         label={label}
         placeholder={placeholder}
+        apiUrl={apiUrl}
+        transformResponse={transformResponse}
         value={value}
         onChange={handleChange}
         required={required}
         disabled={disabled}
         error={error}
-        {...rest}
+        className={className}
       />
-      {helperText && !error && (
-        <p className="text-sm text-gray-500 mt-1">{helperText}</p>
-      )}
-    </div>
-  );
-};
+    );
+  }
 
-// Individual controllers that pass all props including name to the base controller
-export const BasicSelectController: React.FC<SelectControllerProps> = ({
-  name,
-  ...rest
-}) => {
-  return <BaseSelectController name={name} {...rest} Component={Select} />;
-};
-
-export const SearchableSelectController: React.FC<SelectControllerProps> = ({
-  name,
-  ...rest
-}) => {
+  // Regular select with local options
   return (
-    <BaseSelectController name={name} {...rest} Component={SearchableSelect} />
-  );
-};
-
-export const SelectFromApiController: React.FC<SelectControllerProps> = ({
-  name,
-  ...rest
-}) => {
-  return (
-    <BaseSelectController name={name} {...rest} Component={SelectFromApi} />
-  );
-};
-
-export const SearchableSelectFromApiController: React.FC<
-  SelectControllerProps
-> = ({ name, ...rest }) => {
-  return (
-    <BaseSelectController
-      name={name}
-      {...rest}
-      Component={SearchableSelectFromApi}
+    <Select
+      label={label}
+      placeholder={placeholder}
+      options={Array.isArray(options) ? options : []}
+      value={value}
+      onChange={handleChange}
+      required={required}
+      disabled={disabled}
+      error={error}
+      className={className}
     />
   );
 };
 
-export const MultiSelectController: React.FC<SelectControllerProps> = ({
-  name,
-  ...rest
-}) => {
-  return <BaseSelectController name={name} {...rest} Component={MultiSelect} />;
-};
-
-export const SearchableMultiSelectController: React.FC<
-  SelectControllerProps
-> = ({ name, ...rest }) => {
-  return (
-    <BaseSelectController
-      name={name}
-      {...rest}
-      Component={SearchableMultiSelect}
-    />
-  );
-};
-
-export const MultiSelectFromApiController: React.FC<SelectControllerProps> = ({
-  name,
-  ...rest
-}) => {
-  return (
-    <BaseSelectController
-      name={name}
-      {...rest}
-      Component={MultiSelectFromApi}
-    />
-  );
-};
-
-export const SearchableMultiSelectFromApiController: React.FC<
-  SelectControllerProps
-> = ({ name, ...rest }) => {
-  return (
-    <BaseSelectController
-      name={name}
-      {...rest}
-      Component={SearchableMultiSelectFromApi}
-    />
-  );
-};
+export default SelectController;

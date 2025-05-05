@@ -1,8 +1,6 @@
 // src/components/CheckBoxController.tsx
 import React, { useEffect, useState } from "react";
-import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
-import { z } from "zod";
-import { FormControllerProps } from "../types";
+import { useFormContext } from "react-hook-form";
 import { cn } from "../utils";
 
 type CheckBoxItemProps = {
@@ -12,156 +10,252 @@ type CheckBoxItemProps = {
 };
 
 type CheckBoxControllerProps = {
+  name: string;
+  label?: string;
   items?: CheckBoxItemProps[];
-  form: UseFormReturn<z.TypeOf<any>, any, undefined>;
+  required?: boolean;
+  disabled?: boolean;
+  helperText?: string;
+  defaultValue?: boolean | string[];
   baseClassName?: string;
-  checkBoxController: FormControllerProps;
-  field?: ControllerRenderProps<z.TypeOf<any>, any>;
+  checkBoxController?: any;
+  [key: string]: any;
 };
 
 /**
  * CheckBoxController - Handles single and group checkbox inputs
  */
 const CheckBoxController: React.FC<CheckBoxControllerProps> = ({
+  name,
+  label,
   items,
-  form,
+  required = false,
+  disabled = false,
+  helperText,
+  defaultValue,
   baseClassName,
   checkBoxController,
-  field,
+  ...rest
 }) => {
-  // Initialize default values for checkboxes
-  useEffect(() => {
-    if (checkBoxController.defaultValue) {
-      form.setValue(
-        checkBoxController?.name as string,
-        checkBoxController.defaultValue
-      );
-    }
-  }, [form, checkBoxController]);
+  // Fix: Check if we're in a form context
+  const formContextResult = useFormContext();
+  const [isChecked, setIsChecked] = useState<boolean>(Boolean(defaultValue));
+  const [selectedValues, setSelectedValues] = useState<string[]>(
+    Array.isArray(defaultValue) ? defaultValue : []
+  );
 
-  // Handle single checkbox or checkbox group
-  return checkBoxController.type === "checkbox" ? (
-    <SingleCheckBoxHandler
-      checkBoxController={checkBoxController}
-      form={form}
-      field={field}
-    />
-  ) : (
-    <div className={cn("space-y-2", baseClassName)}>
-      {items &&
-        items.map((item) => (
-          <div key={item.value} className="flex items-center space-x-2">
+  // Determine if it's a single checkbox or group
+  const isSingle = !items || items.length === 0;
+
+  // If no form context, render with default props
+  if (!formContextResult) {
+    console.warn(
+      `FormContext not found for field ${name}. Rendering with default props.`
+    );
+
+    // For single checkbox
+    if (isSingle) {
+      return (
+        <div className="form-control w-full">
+          <div className="flex items-center space-x-2">
             <input
               type="checkbox"
-              id={`${checkBoxController.name}-${item.value}`}
-              name={checkBoxController.name}
-              value={item.value}
-              disabled={item.disabled}
-              checked={(field?.value || []).includes(item.value)}
-              onChange={(e) => {
-                const currentValues = field?.value || [];
-                const updatedValues = e.target.checked
-                  ? [...currentValues, item.value]
-                  : currentValues.filter(
-                      (value: string) => value !== item.value
-                    );
-
-                form.setValue(
-                  checkBoxController.name as string,
-                  updatedValues,
-                  {
-                    shouldValidate: true,
-                  }
-                );
-              }}
+              id={name}
+              name={name}
+              checked={isChecked}
+              onChange={(e) => setIsChecked(e.target.checked)}
+              disabled={disabled}
               className={cn(
                 "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500",
-                item.disabled ? "opacity-50 cursor-not-allowed" : "",
-                checkBoxController.className
+                disabled && "opacity-50 cursor-not-allowed"
               )}
+              {...rest}
             />
-            <label
-              htmlFor={`${checkBoxController.name}-${item.value}`}
+            {label && (
+              <label
+                htmlFor={name}
+                className="text-sm font-medium text-gray-700 cursor-pointer"
+              >
+                {label}
+                {required && <span className="text-red-500 ml-1">*</span>}
+              </label>
+            )}
+          </div>
+          {helperText && (
+            <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+          )}
+        </div>
+      );
+    }
+
+    // For checkbox group
+    return (
+      <div className="form-control w-full">
+        {label && (
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+        )}
+
+        <div className={cn("space-y-2", baseClassName)}>
+          {items?.map((item) => (
+            <div
+              key={item.value}
               className={cn(
-                "text-sm font-medium text-gray-700",
-                item.disabled ? "text-gray-400" : ""
+                "flex items-center",
+                disabled && "opacity-75",
+                item.disabled && "opacity-50"
               )}
             >
-              {item.label}
-            </label>
-          </div>
-        ))}
-    </div>
-  );
-};
+              <input
+                type="checkbox"
+                id={`${name}-${item.value}`}
+                name={name}
+                value={item.value}
+                checked={selectedValues.includes(item.value)}
+                onChange={(e) => {
+                  const newSelected = e.target.checked
+                    ? [...selectedValues, item.value]
+                    : selectedValues.filter((v) => v !== item.value);
+                  setSelectedValues(newSelected);
+                }}
+                disabled={disabled || item.disabled}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                {...rest}
+              />
+              <label
+                htmlFor={`${name}-${item.value}`}
+                className="ml-2 text-sm text-gray-700 cursor-pointer"
+              >
+                {item.label}
+              </label>
+            </div>
+          ))}
+        </div>
 
-/**
- * SingleCheckBoxHandler - Handles a single checkbox with advanced behavior
- */
-const SingleCheckBoxHandler: React.FC<CheckBoxControllerProps> = ({
-  checkBoxController,
-  form,
-  field,
-}) => {
-  // Track indeterminate state
-  const [isIndeterminate, setIsIndeterminate] = useState(false);
+        {helperText && (
+          <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+        )}
+      </div>
+    );
+  }
 
-  // Handle checkbox change with custom logic
-  const handleChange = () => {
-    // If the checkbox is currently unchecked or in an indeterminate state
-    if (!field?.value || isIndeterminate) {
-      // Set to checked
-      form.setValue(checkBoxController.name as string, true, {
-        shouldValidate: true,
-      });
-      setIsIndeterminate(false);
-    } else {
-      // If checkbox is checked, set to an indeterminate state
-      form.setValue(checkBoxController.name as string, false, {
-        shouldValidate: true,
-      });
-      setIsIndeterminate(false);
-    }
-  };
+  // With form context
+  const { register, setValue, watch, formState } = formContextResult;
+  const { errors } = formState;
+  const error = errors[name]?.message as string;
+  const value = watch(name);
 
-  // Ref for checkbox to set indeterminate state
-  const checkboxRef = React.useRef<HTMLInputElement>(null);
-
-  // Update indeterminate state visually
   useEffect(() => {
-    if (checkboxRef.current) {
-      checkboxRef.current.indeterminate = isIndeterminate;
+    // For single checkbox, set initial value if available
+    if (isSingle && defaultValue !== undefined) {
+      setValue(name, Boolean(defaultValue), { shouldValidate: true });
     }
-  }, [isIndeterminate]);
 
+    // For checkbox group, set initial values if available
+    if (!isSingle && Array.isArray(defaultValue) && defaultValue.length > 0) {
+      setValue(name, defaultValue, { shouldValidate: true });
+    }
+  }, [isSingle, defaultValue, name, setValue]);
+
+  // For single checkbox
+  if (isSingle) {
+    return (
+      <div className="form-control w-full">
+        <div className="flex items-center space-x-2">
+          <input
+            {...register(name)}
+            type="checkbox"
+            id={name}
+            disabled={disabled}
+            className={cn(
+              "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500",
+              disabled && "opacity-50 cursor-not-allowed",
+              error && "border-red-500"
+            )}
+            {...rest}
+          />
+          {label && (
+            <label
+              htmlFor={name}
+              className="text-sm font-medium text-gray-700 cursor-pointer"
+            >
+              {label}
+              {required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+          )}
+        </div>
+        {error ? (
+          <p className="mt-1 text-sm text-red-500">{error}</p>
+        ) : helperText ? (
+          <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  // For checkbox group
   return (
-    <div className="flex items-center space-x-2">
-      <input
-        ref={checkboxRef}
-        type="checkbox"
-        id={checkBoxController.name}
-        checked={field?.value || false}
-        onChange={handleChange}
-        disabled={
-          typeof checkBoxController.disabled === "boolean"
-            ? checkBoxController.disabled
-            : false
-        }
-        className={cn(
-          "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500",
-          checkBoxController.disabled ? "opacity-50 cursor-not-allowed" : "",
-          checkBoxController.className
-        )}
-      />
-      <label
-        htmlFor={checkBoxController.name}
-        className={cn(
-          "text-sm font-medium text-gray-700",
-          checkBoxController.disabled ? "text-gray-400" : ""
-        )}
-      >
-        {checkBoxController.label}
-      </label>
+    <div className="form-control w-full">
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+
+      <div className={cn("space-y-2", baseClassName)}>
+        {items?.map((item) => {
+          const itemId = `${name}-${item.value}`;
+          const isItemSelected =
+            Array.isArray(value) && value.includes(item.value);
+
+          return (
+            <div
+              key={item.value}
+              className={cn(
+                "flex items-center",
+                disabled && "opacity-75",
+                item.disabled && "opacity-50"
+              )}
+            >
+              <input
+                id={itemId}
+                type="checkbox"
+                value={item.value}
+                checked={isItemSelected}
+                onChange={(e) => {
+                  const currentValues = Array.isArray(value) ? value : [];
+                  const newValues = e.target.checked
+                    ? [...currentValues, item.value]
+                    : currentValues.filter((v) => v !== item.value);
+
+                  setValue(name, newValues, { shouldValidate: true });
+                }}
+                disabled={disabled || item.disabled}
+                className={cn(
+                  "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500",
+                  error && "border-red-500"
+                )}
+                {...rest}
+              />
+              <label
+                htmlFor={itemId}
+                className="ml-2 text-sm text-gray-700 cursor-pointer"
+              >
+                {item.label}
+              </label>
+            </div>
+          );
+        })}
+      </div>
+
+      {error ? (
+        <p className="mt-1 text-sm text-red-500">{error}</p>
+      ) : helperText ? (
+        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+      ) : null}
     </div>
   );
 };

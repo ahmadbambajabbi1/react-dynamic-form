@@ -3,7 +3,7 @@ import BasicForm from "./forms/BasicForm";
 import MultiStepForm from "./forms/MultiStepForm";
 import ValidationForm from "./forms/ValidationForm";
 import FileUploadForm from "./forms/FileUploadForm";
-import { DynamicFormWithSelectExample } from "./forms/DynamicFormWithSelectExample";
+import DynamicFormExample from "./forms/DynamicFormWithSelectExample";
 
 type FormExample = "basic" | "multistep" | "validation" | "fileupload";
 
@@ -13,7 +13,7 @@ const App: React.FC = () => {
   const renderForm = () => {
     switch (activeExample) {
       case "basic":
-        return <BasicForm />;
+        return <DynamicFormExample />;
       case "multistep":
         return <MultiStepForm />;
       case "validation":

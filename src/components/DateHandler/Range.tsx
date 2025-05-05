@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { ControllerRenderProps } from "react-hook-form";
 import { z } from "zod";
-import { FormControllerProps } from "../../types";
+import { Controller } from "../../types";
 import {
   format,
   isValid,
@@ -22,7 +22,7 @@ import {
 
 type RangeDatePickerProps = {
   field: ControllerRenderProps<z.TypeOf<any>, any>;
-  controller?: FormControllerProps;
+  controller?: Controller;
   onClose?: () => void;
 };
 
@@ -145,7 +145,7 @@ const RangeDatePicker: React.FC<RangeDatePickerProps> = ({
             isSelectable &&
             controller?.disabled &&
             typeof controller.disabled === "function" &&
-            controller.disabled(day);
+            ((controller as any)?.disabled(day) as any);
 
           return (
             <button

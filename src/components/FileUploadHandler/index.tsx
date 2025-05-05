@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
-import { FormControllerProps, FileWithPreview } from "../../types";
+import { Controller, FileWithPreview } from "../../types";
 import { z } from "zod";
 import {
   DEFAULT_ACCEPTED_FILE_TYPES,
@@ -13,7 +13,7 @@ import FilePreview from "./FilePreview";
 
 type FileUploadProps = {
   field: ControllerRenderProps<z.TypeOf<any>, any>;
-  controller: FormControllerProps;
+  controller: Controller;
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
 

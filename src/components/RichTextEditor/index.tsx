@@ -1,12 +1,12 @@
 // src/components/RichTextEditor/index.tsx
 import React from "react";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
-import { FormControllerProps } from "../../types";
+import { Controller } from "../../types";
 import SimpleEditor from "./SimpleEditor";
 
 interface RichTextEditorControllerProps {
   field: ControllerRenderProps<any, any>;
-  controller: FormControllerProps;
+  controller: Controller;
   form: UseFormReturn<any, any, undefined>;
 }
 

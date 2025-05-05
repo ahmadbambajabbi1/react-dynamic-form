@@ -70,28 +70,28 @@
 //   multiple?: boolean;
 // };
 
-// export type apiOptionsType = {
-//   api: string;
-//   method: "POST" | "PATCH" | "PUT" | "DELETE" | "GET";
-//   options?: AxiosRequestConfig<{}> | undefined;
-//   errorHandler?: (data: any, type: errorHandlertType) => void;
-//   onFinish?: (data: any) => void;
-// };
+export type apiOptionsType = {
+  api: string;
+  method: "POST" | "PATCH" | "PUT" | "DELETE" | "GET";
+  options?: AxiosRequestConfig<{}> | undefined;
+  errorHandler?: (data: any, type: errorHandlertType) => void;
+  onFinish?: (data: any) => void;
+};
 
-// export type errorHandlertType = "form" | "modal" | "toast" | "redirect";
+export type errorHandlertType = "form" | "modal" | "toast" | "redirect";
 
-// export type PropsPropsType = {
-//   form?: JSX.IntrinsicElements["form"] & {
-//     ref: React.Ref<HTMLFormElement>;
-//   };
-//   controllerBase?: JSX.IntrinsicElements["div"] & {
-//     ref?: React.Ref<HTMLDivElement>;
-//   };
-//   groupcontrollerBase?: JSX.IntrinsicElements["div"] & {
-//     ref?: React.Ref<HTMLDivElement>;
-//   };
-//   submitBtn?: JSX.IntrinsicElements["button"];
-// };
+export type PropsPropsType = {
+  form?: JSX.IntrinsicElements["form"] & {
+    ref: React.Ref<HTMLFormElement>;
+  };
+  controllerBase?: JSX.IntrinsicElements["div"] & {
+    ref?: React.Ref<HTMLDivElement>;
+  };
+  groupcontrollerBase?: JSX.IntrinsicElements["div"] & {
+    ref?: React.Ref<HTMLDivElement>;
+  };
+  submitBtn?: JSX.IntrinsicElements["button"];
+};
 
 // export type DynamicFormHanldeSubmitParamType<T extends ZodType<any, any, any>> =
 //   {
@@ -100,14 +100,14 @@
 //     setError: UseFormSetError<z.TypeOf<T>>;
 //   };
 
-// export type StepsType<T> = {
-//   stepName?: string;
-//   stepNameByNumber?: number;
-//   stepSchema?: T;
-//   skip?: (value: any) => boolean;
-//   condition?: (value: any) => string;
-//   controllers: FormControllerProps[];
-// };
+export type StepsType<T> = {
+  stepName?: string;
+  stepNameByNumber?: number;
+  stepSchema?: T;
+  skip?: (value: any) => boolean;
+  condition?: (value: any) => string;
+  controllers: Controller[];
+};
 
 // export type DynamicFormProps<T extends z.ZodType<any, any>> = {
 //   controllers?: FormControllerProps[];
@@ -141,23 +141,22 @@
 //   formLoading: boolean;
 // };
 
-// // File upload types
-// export interface FileWithPreview extends File {
-//   preview: string;
-// }
-
 // // Other enums and constants
 // export enum SUCCESSTYPE {
 //   VERIFIED = "VERIFIED",
 //   SUCCESS = "SUCCESS",
 //   ERROR = "ERROR",
 // }
-// src/components/dynamic-form/types.ts
+
 import { ReactNode } from "react";
 import { z } from "zod";
-import { SelectOption } from "../select/types";
+import { SelectOption } from "../components/select/types";
+import { AxiosRequestConfig } from "axios";
 
-// Existing types for DynamicForm
+// File upload types
+export interface FileWithPreview extends File {
+  preview: string;
+}
 export enum SUCCESSTYPE {
   VERIFIED = "verified",
   SUCCESS = "success",

@@ -1,42 +1,95 @@
-import React from "react";
+// src/components/select/Select.tsx
+import React, { useState, useRef, useEffect } from "react";
 import { SelectControllerProps, SelectOption } from "./types";
-import { useSelectController } from "./useSelectController";
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { Spinner } from "../../icons/Spinner";
 
-export const Select: React.FC<SelectControllerProps> = (props) => {
-  const {
-    label,
-    placeholder = "Select an option",
-    disabled = false,
-    required = false,
-    error,
-    clearable = true,
-    loading = false,
-    className = "",
-    size = "md",
-  } = props;
+export const Select: React.FC<SelectControllerProps> = ({
+  label,
+  placeholder = "Select an option",
+  options = [],
+  value = null,
+  onChange,
+  disabled = false,
+  required = false,
+  error,
+  clearable = true,
+  loading = false,
+  className = "",
+  size = "md",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("bottom");
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
-  const {
-    selectedOption,
-    isOpen,
-    toggleMenu,
-    selectOption,
-    clearSelection,
-    menuProps,
-    inputProps,
-    options,
-  } = useSelectController(props);
+  // Find the currently selected option
+  const selectedOption = options.find((opt) => opt.value === value) || null;
 
-  // Size classes
+  // Handle clicks outside to close the dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        triggerRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Determine dropdown position (top or bottom)
+  const toggleDropdown = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 250; // Approximate max height of dropdown
+
+      setMenuPosition(
+        spaceBelow < dropdownHeight && spaceAbove > spaceBelow
+          ? "top"
+          : "bottom"
+      );
+    }
+
+    setIsOpen(!disabled && !isOpen);
+  };
+
+  // Handle selection of an option
+  const handleSelect = (option: SelectOption) => {
+    if (onChange) {
+      onChange(option.value as string);
+    }
+    setIsOpen(false);
+  };
+
+  // Handle clearing the selection
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onChange) {
+      onChange(null);
+    }
+  };
+
+  // Size classes for the select component
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
     lg: "h-12 text-lg",
   };
 
-  // Render the component
   return (
     <div className={`select-container w-full ${className}`}>
       {label && (
@@ -47,7 +100,9 @@ export const Select: React.FC<SelectControllerProps> = (props) => {
       )}
 
       <div className="relative">
+        {/* Trigger Element */}
         <div
+          ref={triggerRef}
           className={`
             flex items-center border rounded-md px-3 relative cursor-pointer
             ${sizeClasses[size]}
@@ -59,15 +114,15 @@ export const Select: React.FC<SelectControllerProps> = (props) => {
                 : "bg-white hover:border-gray-400"
             }
           `}
-          onClick={() => !disabled && toggleMenu()}
+          onClick={toggleDropdown}
         >
-          <input
-            {...inputProps}
-            className="block w-full h-full outline-none bg-transparent cursor-pointer"
-            placeholder={placeholder}
-            readOnly
-            disabled={disabled}
-          />
+          <div className="flex-1 truncate">
+            {selectedOption ? (
+              <span>{selectedOption.label}</span>
+            ) : (
+              <span className="text-gray-400">{placeholder}</span>
+            )}
+          </div>
 
           <div className="flex items-center ml-2">
             {loading ? (
@@ -78,10 +133,7 @@ export const Select: React.FC<SelectControllerProps> = (props) => {
                   <button
                     type="button"
                     className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearSelection();
-                    }}
+                    onClick={handleClear}
                   >
                     <XIcon />
                   </button>
@@ -98,18 +150,16 @@ export const Select: React.FC<SelectControllerProps> = (props) => {
           </div>
         </div>
 
+        {/* Error Message */}
         {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
 
+        {/* Dropdown Menu */}
         {isOpen && !disabled && (
           <div
-            ref={menuProps.ref}
+            ref={menuRef}
             className={`
-              absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${
-                menuProps.position === "top"
-                  ? "bottom-full mb-1"
-                  : "top-full mt-1"
-              }
+              absolute z-50 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
+              ${menuPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"}
             `}
           >
             {options.length === 0 ? (
@@ -130,7 +180,7 @@ export const Select: React.FC<SelectControllerProps> = (props) => {
                           : "text-gray-700"
                       }
                     `}
-                    onClick={() => !option.disabled && selectOption(option)}
+                    onClick={() => !option.disabled && handleSelect(option)}
                   >
                     <div className="flex items-center">
                       {option.icon && (
@@ -148,3 +198,5 @@ export const Select: React.FC<SelectControllerProps> = (props) => {
     </div>
   );
 };
+
+export default Select;
