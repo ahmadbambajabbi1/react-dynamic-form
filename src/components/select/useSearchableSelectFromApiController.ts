@@ -1,4 +1,3 @@
-// src/components/select/useSearchableSelectFromApiController.ts
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   SearchableSelectFromApiProps,
@@ -31,17 +30,16 @@ export const useSearchableSelectFromApiController = (
   const [loadingResults, setLoadingResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousSearchRef = useRef<string>("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const prevDependentValueRef = useRef<any>(undefined);
 
-  // Get form context safely with a try/catch
   let formContext;
   try {
     formContext = useFormContext();
   } catch (e) {
-    // Form context not available, this is fine for standalone usage
     formContext = null;
   }
 
-  // Safely get the dependent value without useWatch
   let dependentValue = undefined;
   if (formContext && optionsApiOptions?.dependingContrllerName) {
     try {
@@ -53,7 +51,6 @@ export const useSearchableSelectFromApiController = (
     }
   }
 
-  // Use the base API controller
   const baseApiSelect = useSelectFromApiController({
     apiUrl,
     params,
@@ -64,18 +61,16 @@ export const useSearchableSelectFromApiController = (
     ...selectProps,
   });
 
-  // Search function with API call
   const searchOptions = useCallback(
     async (term: string) => {
-      // Don't search if term is too short or identical to previous search
       if (term.length < minSearchLength || term === previousSearchRef.current) {
         if (term.length < minSearchLength) {
           setFilteredOptions(baseApiSelect.options);
+          setLoadingResults(false);
         }
         return;
       }
 
-      // Don't search if dependent field has no value, unless includeAll is true
       if (
         optionsApiOptions?.dependingContrllerName &&
         !dependentValue &&
@@ -85,42 +80,57 @@ export const useSearchableSelectFromApiController = (
         return;
       }
 
-      // Store current search term to prevent duplicate searches
       previousSearchRef.current = term;
       setLoadingResults(true);
 
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      abortControllerRef.current = new AbortController();
+
       try {
-        // Prepare parameters for API call
-        let requestParams = {
-          ...params,
+        let requestParams: Record<string, any> = {
           [searchParam]: term,
         };
 
-        // Handle dependent controller
-        if (optionsApiOptions?.dependingContrllerName && dependentValue) {
-          // Extract parameter name without 'Id' suffix
+        if (optionsApiOptions?.params) {
+          const { paramName, ...otherParams } = optionsApiOptions.params;
+          Object.assign(requestParams, otherParams);
+
+          if (
+            paramName &&
+            optionsApiOptions?.dependingContrllerName &&
+            dependentValue
+          ) {
+            requestParams[paramName] = dependentValue;
+          } else if (paramName) {
+            requestParams[paramName] = dependentValue || "";
+          }
+        }
+
+        if (
+          !optionsApiOptions?.params?.paramName &&
+          optionsApiOptions?.dependingContrllerName &&
+          dependentValue
+        ) {
           const paramName = optionsApiOptions.dependingContrllerName.replace(
             /Id$/,
             ""
           );
-
-          // Convert to camelCase with first letter uppercase for the filter parameter
           const paramToCapitalize = paramName
             ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
             : "";
-
-          // Add the filter parameter
-          requestParams = {
-            ...requestParams,
-            [`filterBy${paramToCapitalize}Id`]: dependentValue,
-            ...(optionsApiOptions.params || {}),
-          };
+          requestParams[`filterBy${paramToCapitalize}Id`] = dependentValue;
         }
 
-        // Use our custom Axios instance
-        const response = await Axios.get(apiUrl, { params: requestParams });
+        Object.assign(requestParams, params);
 
-        // Process the response data
+        const response = await Axios.get(apiUrl, {
+          params: requestParams,
+          signal: abortControllerRef.current.signal,
+        });
+
         let searchResults;
         if (typeof transformResponse === "function") {
           searchResults = transformResponse(response.data);
@@ -131,18 +141,15 @@ export const useSearchableSelectFromApiController = (
         }
 
         setFilteredOptions(searchResults);
+        prevDependentValueRef.current = dependentValue;
 
-        // If we have a formContext and a selected value - with safety checks
         if (formContext && name) {
           try {
             const currentValue = formContext.getValues(name);
-
-            // Check if the current value is still valid in the new options
             const isValueValid = searchResults.some(
               (option: any) => option.value === currentValue
             );
 
-            // If not valid and we have a value, reset it
             if (
               !isValueValid &&
               currentValue !== undefined &&
@@ -155,15 +162,18 @@ export const useSearchableSelectFromApiController = (
           }
         }
       } catch (err) {
-        console.error("Error searching options:", err);
-        // Fall back to client-side filtering if API search fails
-        setFilteredOptions(
-          baseApiSelect.options.filter((option) =>
-            option.label.toLowerCase().includes(term.toLowerCase())
-          )
-        );
+        if (err.name !== "AbortError") {
+          console.error("Error searching options:", err);
+          setFilteredOptions(
+            baseApiSelect.options.filter((option) =>
+              option.label.toLowerCase().includes(term.toLowerCase())
+            )
+          );
+        }
       } finally {
-        setLoadingResults(false);
+        if (abortControllerRef.current?.signal.aborted === false) {
+          setLoadingResults(false);
+        }
       }
     },
     [
@@ -180,27 +190,23 @@ export const useSearchableSelectFromApiController = (
     ]
   );
 
-  // Properly debounced search effect
   const handleSearchChange = useCallback(
     (term: string) => {
       setSearchTerm(term);
 
-      // Clear existing timeout
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
       }
 
-      // Don't create a new timeout for empty or too-short searches
       if (term.length < minSearchLength) {
         setFilteredOptions(baseApiSelect.options);
         setLoadingResults(false);
         return;
       }
 
-      // Set loading state immediately for better UX
       setLoadingResults(true);
 
-      // Create new debounced search
       searchTimeoutRef.current = setTimeout(() => {
         searchOptions(term);
       }, debounceMs);
@@ -208,23 +214,32 @@ export const useSearchableSelectFromApiController = (
     [searchOptions, minSearchLength, debounceMs, baseApiSelect.options]
   );
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
-  // Re-set filtered options when base options change (e.g., due to dependency changes)
   useEffect(() => {
     if (searchTerm.length < minSearchLength) {
       setFilteredOptions(baseApiSelect.options);
     }
   }, [baseApiSelect.options, searchTerm, minSearchLength]);
 
-  // Override input props for search functionality
+  useEffect(() => {
+    if (
+      dependentValue !== prevDependentValueRef.current &&
+      searchTerm.length >= minSearchLength
+    ) {
+      searchOptions(searchTerm);
+    }
+  }, [dependentValue, searchTerm, minSearchLength, searchOptions]);
+
   const inputProps = {
     ...baseApiSelect.inputProps,
     value: baseApiSelect.isOpen
@@ -241,7 +256,6 @@ export const useSearchableSelectFromApiController = (
       : props.placeholder || "Select option",
   };
 
-  // Clear search when closing menu
   useEffect(() => {
     if (!baseApiSelect.isOpen) {
       setSearchTerm("");
@@ -252,7 +266,7 @@ export const useSearchableSelectFromApiController = (
   return {
     ...baseApiSelect,
     searchTerm,
-    setSearchTerm: handleSearchChange, // Use the debounced handler
+    setSearchTerm: handleSearchChange,
     filteredOptions,
     loadingResults,
     inputProps,

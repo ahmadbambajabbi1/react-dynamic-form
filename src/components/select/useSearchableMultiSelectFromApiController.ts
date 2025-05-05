@@ -31,6 +31,7 @@ export const useSearchableMultiSelectFromApiController = (
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousSearchRef = useRef<string>("");
   const abortControllerRef = useRef<AbortController | null>(null);
+  const prevDependentValueRef = useRef<any>(undefined);
 
   let formContext;
   try {
@@ -82,21 +83,37 @@ export const useSearchableMultiSelectFromApiController = (
       previousSearchRef.current = term;
       setLoadingResults(true);
 
-      // Cancel previous request if it exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
 
       try {
-        let requestParams = {
-          ...params,
+        let requestParams: Record<string, any> = {
           [searchParam]: term,
         };
 
-        if (optionsApiOptions?.dependingContrllerName && dependentValue) {
+        if (optionsApiOptions?.params) {
+          const { paramName, ...otherParams } = optionsApiOptions.params;
+          Object.assign(requestParams, otherParams);
+
+          if (
+            paramName &&
+            optionsApiOptions?.dependingContrllerName &&
+            dependentValue
+          ) {
+            requestParams[paramName] = dependentValue;
+          } else if (paramName) {
+            requestParams[paramName] = dependentValue || "";
+          }
+        }
+
+        if (
+          !optionsApiOptions?.params?.paramName &&
+          optionsApiOptions?.dependingContrllerName &&
+          dependentValue
+        ) {
           const paramName = optionsApiOptions.dependingContrllerName.replace(
             /Id$/,
             ""
@@ -104,12 +121,10 @@ export const useSearchableMultiSelectFromApiController = (
           const paramToCapitalize = paramName
             ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
             : "";
-          requestParams = {
-            ...requestParams,
-            [`filterBy${paramToCapitalize}Id`]: dependentValue,
-            ...(optionsApiOptions.params || {}),
-          };
+          requestParams[`filterBy${paramToCapitalize}Id`] = dependentValue;
         }
+
+        Object.assign(requestParams, params);
 
         const response = await Axios.get(apiUrl, {
           params: requestParams,
@@ -126,6 +141,7 @@ export const useSearchableMultiSelectFromApiController = (
         }
 
         setFilteredOptions(searchResults);
+        prevDependentValueRef.current = dependentValue;
 
         if (formContext && name) {
           try {
@@ -146,7 +162,7 @@ export const useSearchableMultiSelectFromApiController = (
             console.warn("Error validating current values:", e);
           }
         }
-      } catch (err: any) {
+      } catch (err) {
         if (err.name !== "AbortError") {
           console.error("Error searching options:", err);
           setFilteredOptions(
@@ -215,6 +231,15 @@ export const useSearchableMultiSelectFromApiController = (
       setFilteredOptions(baseApiMultiSelect.options);
     }
   }, [baseApiMultiSelect.options, searchTerm, minSearchLength]);
+
+  useEffect(() => {
+    if (
+      dependentValue !== prevDependentValueRef.current &&
+      searchTerm.length >= minSearchLength
+    ) {
+      searchOptions(searchTerm);
+    }
+  }, [dependentValue, searchTerm, minSearchLength, searchOptions]);
 
   const inputProps = {
     ...baseApiMultiSelect.inputProps,

@@ -197,10 +197,10 @@ const DynamicFormExample: React.FC = () => {
       colSpan: 6,
       apiUrl: "http://localhost:1993/test/see/d",
       optionsApiOptions: {
-        dependingContrllerName: "country",
+        // dependingContrllerName: "country",
         params: {
           // includeInactive: false,
-          paramName: "countryId",
+          // paramName: "countryId",
           sortBy: "name",
         },
         includeAll: true,
@@ -255,19 +255,16 @@ const DynamicFormExample: React.FC = () => {
       placeholder: "Select team members",
       required: true,
       colSpan: 6,
-      apiUrl: "http://localhost:1993/test/see",
-      // transformResponse: transformTeamMembersResponse,
-      // Mock data for demo
-      options: [
-        { value: "user1", label: "Alex Johnson" },
-        { value: "user2", label: "Sam Thompson" },
-        { value: "user3", label: "Taylor Brown" },
-        { value: "user4", label: "Morgan Williams" },
-        { value: "user5", label: "Casey Davis" },
-        { value: "user6", label: "Jordan Miller" },
-        { value: "user7", label: "Riley Wilson" },
-        { value: "user8", label: "Quinn Lee" },
-      ],
+      apiUrl: "http://localhost:1993/test/see/d",
+      optionsApiOptions: {
+        dependingContrllerName: "role",
+        params: {
+          // includeInactive: false,
+          // paramName: "countryId",
+          sortByssss: "name",
+        },
+        includeAll: true,
+      },
     },
 
     // Searchable API-based Multi-Select

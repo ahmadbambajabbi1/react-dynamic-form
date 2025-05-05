@@ -1,4 +1,3 @@
-// src/components/select/useMultiSelectFromApiController.ts
 import {
   MultiSelectFromApiProps,
   MultiSelectFromApiControllerReturn,
@@ -25,8 +24,8 @@ export const useMultiSelectFromApiController = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const hasFetchedRef = useRef(false);
+  const prevDependentValueRef = useRef<any>(undefined);
 
-  // Form context to watch dependent controllers - with safe access
   let formContext;
   try {
     formContext = useFormContext();
@@ -34,7 +33,6 @@ export const useMultiSelectFromApiController = (
     formContext = null;
   }
 
-  // Safely get dependent value
   let dependentValue = undefined;
   if (formContext && optionsApiOptions?.dependingContrllerName) {
     try {
@@ -46,7 +44,6 @@ export const useMultiSelectFromApiController = (
     }
   }
 
-  // Create a base controller with empty options (will be filled after API call)
   const baseMultiSelect = useMultiSelectController({
     ...multiSelectProps,
     name,
@@ -55,16 +52,20 @@ export const useMultiSelectFromApiController = (
 
   const fetchOptions = useCallback(
     async (forceFetch: boolean = false) => {
-      // Only fetch if we haven't already fetched or are forcing a refresh
-      if (!forceFetch && hasFetchedRef.current) return;
+      const shouldSkipFetch =
+        !forceFetch &&
+        hasFetchedRef.current &&
+        dependentValue === prevDependentValueRef.current;
 
-      // Don't fetch if dependent field has no value, unless includeAll is true
+      if (shouldSkipFetch) return;
+
       if (
         optionsApiOptions?.dependingContrllerName &&
         !dependentValue &&
         !optionsApiOptions.includeAll
       ) {
         setOptions([]);
+        prevDependentValueRef.current = dependentValue;
         return;
       }
 
@@ -72,39 +73,46 @@ export const useMultiSelectFromApiController = (
       setError(null);
 
       try {
-        // Prepare parameters for API call
-        let requestParams = { ...params };
+        let requestParams: Record<string, any> = {};
 
-        // Handle dependent controller
-        if (optionsApiOptions?.dependingContrllerName && dependentValue) {
-          // Extract parameter name without 'Id' suffix
+        if (optionsApiOptions?.params) {
+          const { paramName, ...otherParams } = optionsApiOptions.params;
+          Object.assign(requestParams, otherParams);
+
+          if (
+            paramName &&
+            optionsApiOptions?.dependingContrllerName &&
+            dependentValue
+          ) {
+            requestParams[paramName] = dependentValue;
+          } else if (paramName) {
+            requestParams[paramName] = dependentValue || "";
+          }
+        }
+
+        if (
+          !optionsApiOptions?.params?.paramName &&
+          optionsApiOptions?.dependingContrllerName &&
+          dependentValue
+        ) {
           const paramName = optionsApiOptions.dependingContrllerName.replace(
             /Id$/,
             ""
           );
-
-          // Convert to camelCase with first letter uppercase for the filter parameter
           const paramToCapitalize = paramName
             ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
             : "";
-
-          // Add the filter parameter
-          requestParams = {
-            ...requestParams,
-            [`filterBy${paramToCapitalize}Id`]: dependentValue,
-            ...(optionsApiOptions.params || {}),
-          };
+          requestParams[`filterBy${paramToCapitalize}Id`] = dependentValue;
         }
 
-        // Use our custom Axios instance
+        Object.assign(requestParams, params);
+
         const response = await Axios.get(apiUrl, { params: requestParams });
 
-        // Handle the response data
         let transformedOptions;
         if (typeof transformResponse === "function") {
           transformedOptions = transformResponse(response.data);
         } else if (Array.isArray(response.data)) {
-          // Default handling if transform not provided
           transformedOptions = response.data;
         } else {
           transformedOptions = [];
@@ -112,19 +120,17 @@ export const useMultiSelectFromApiController = (
 
         setOptions(transformedOptions);
         hasFetchedRef.current = true;
+        prevDependentValueRef.current = dependentValue;
 
-        // If we have a formContext and selected values - safely
         if (formContext && name) {
           try {
             const currentValues = formContext.getValues(name);
 
             if (Array.isArray(currentValues) && currentValues.length > 0) {
-              // Filter out values that are no longer valid
               const validValues = currentValues.filter((value) =>
                 transformedOptions.some((option: any) => option.value === value)
               );
 
-              // If any values were removed, update the form
               if (validValues.length !== currentValues.length) {
                 formContext.setValue(name, validValues, {
                   shouldValidate: true,
@@ -140,7 +146,7 @@ export const useMultiSelectFromApiController = (
         setError(
           err instanceof Error ? err : new Error("Failed to fetch options")
         );
-        // Important: On error, keep any provided fallback options
+
         if (props.options && props.options.length > 0) {
           setOptions(props.options);
         }
@@ -160,26 +166,24 @@ export const useMultiSelectFromApiController = (
     ]
   );
 
-  // Refresh function - this will force a new fetch
   const refresh = useCallback(() => {
     hasFetchedRef.current = false;
+    prevDependentValueRef.current = undefined;
     return fetchOptions(true);
   }, [fetchOptions]);
 
-  // Fetch options on initial render
   useEffect(() => {
     fetchOptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-fetch when dependent value changes
   useEffect(() => {
-    if (optionsApiOptions?.dependingContrllerName) {
-      hasFetchedRef.current = false;
-      fetchOptions();
+    if (
+      optionsApiOptions?.dependingContrllerName &&
+      dependentValue !== prevDependentValueRef.current
+    ) {
+      fetchOptions(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dependentValue]);
+  }, [dependentValue, fetchOptions, optionsApiOptions?.dependingContrllerName]);
 
   return {
     ...baseMultiSelect,
