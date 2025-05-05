@@ -111,9 +111,9 @@ export const useMultiSelectFromApiController = (
 
         let transformedOptions;
         if (typeof transformResponse === "function") {
-          transformedOptions = transformResponse(response.data);
-        } else if (Array.isArray(response.data)) {
-          transformedOptions = response.data;
+          transformedOptions = transformResponse(response.data.data);
+        } else if (Array.isArray(response.data.data)) {
+          transformedOptions = response.data.data;
         } else {
           transformedOptions = [];
         }

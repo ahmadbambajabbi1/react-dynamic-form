@@ -133,9 +133,9 @@ export const useSearchableMultiSelectFromApiController = (
 
         let searchResults;
         if (typeof transformResponse === "function") {
-          searchResults = transformResponse(response.data);
-        } else if (Array.isArray(response.data)) {
-          searchResults = response.data;
+          searchResults = transformResponse(response.data.data);
+        } else if (Array.isArray(response.data.data)) {
+          searchResults = response.data.data;
         } else {
           searchResults = [];
         }
@@ -162,7 +162,7 @@ export const useSearchableMultiSelectFromApiController = (
             console.warn("Error validating current values:", e);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         if (err.name !== "AbortError") {
           console.error("Error searching options:", err);
           setFilteredOptions(
