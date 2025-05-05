@@ -2,12 +2,12 @@
 import React from "react";
 import { ControllerRenderProps } from "react-hook-form";
 import { z } from "zod";
-import { FormControllerProps } from "../types";
+import { Controller } from "../types/index";
 import { cn } from "../utils";
 
 type TextareaControllerProps = {
   field: ControllerRenderProps<z.TypeOf<any>, any>;
-  controller: FormControllerProps;
+  controller: Controller;
 };
 
 /**

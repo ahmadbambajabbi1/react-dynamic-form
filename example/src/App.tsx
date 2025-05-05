@@ -3,6 +3,7 @@ import BasicForm from "./forms/BasicForm";
 import MultiStepForm from "./forms/MultiStepForm";
 import ValidationForm from "./forms/ValidationForm";
 import FileUploadForm from "./forms/FileUploadForm";
+import { DynamicFormWithSelectExample } from "./forms/DynamicFormWithSelectExample";
 
 type FormExample = "basic" | "multistep" | "validation" | "fileupload";
 

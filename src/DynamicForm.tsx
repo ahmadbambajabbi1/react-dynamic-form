@@ -94,7 +94,7 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
         const method =
           (apiOptions?.method?.toLowerCase() as HttpMethod) || "post";
         const res = await Axios[method](
-          apiOptions?.api,
+          apiOptions?.api as string,
           values,
           apiOptions?.options
         );

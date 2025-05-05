@@ -152,197 +152,128 @@
 //   SUCCESS = "SUCCESS",
 //   ERROR = "ERROR",
 // }
-// src/types/index.ts
-import { ReactNode, HTMLProps } from "react";
-import { z, ZodType } from "zod";
-import { UseFormReset, UseFormSetError } from "react-hook-form";
-import { AxiosRequestConfig } from "axios";
+// src/components/dynamic-form/types.ts
+import { ReactNode } from "react";
+import { z } from "zod";
+import { SelectOption } from "../select/types";
 
-// Define the allowed form controller types separately as a string union
-export type FormControllerTypesProps =
-  | "text"
-  | "email"
-  | "number"
-  | "upload"
-  | "phone-number"
-  | "password"
-  | "select"
-  | "multi-select"
-  | "searchable-select"
-  | "textarea"
-  | "checkbox"
-  | "group-checkbox"
-  | "rich-text-editor"
-  | "date"
-  | "react-node";
+// Existing types for DynamicForm
+export enum SUCCESSTYPE {
+  VERIFIED = "verified",
+  SUCCESS = "success",
+}
 
-// Common base properties for all form controllers
-export interface BaseFormControllerProps {
-  name?: string;
+export enum ControllerType {
+  TEXT = "text",
+  EMAIL = "email",
+  PASSWORD = "password",
+  NUMBER = "number",
+  TEXTAREA = "textarea",
+  CHECKBOX = "checkbox",
+  RADIO = "radio",
+  SELECT = "select",
+  SEARCHABLE_SELECT = "searchable-select",
+  SELECT_FROM_API = "select-from-api",
+  SEARCHABLE_SELECT_FROM_API = "searchable-select-from-api",
+  MULTI_SELECT = "multi-select",
+  SEARCHABLE_MULTI_SELECT = "searchable-multi-select",
+  MULTI_SELECT_FROM_API = "multi-select-from-api",
+  SEARCHABLE_MULTI_SELECT_FROM_API = "searchable-multi-select-from-api",
+  DATE = "date",
+  TIME = "time",
+  DATETIME = "datetime",
+  FILE = "file",
+  PHONE = "phone",
+  URL = "url",
+  RANGE = "range",
+  COLOR = "color",
+  HIDDEN = "hidden",
+  CUSTOM = "custom",
+}
+
+export interface ModalType {
+  open: boolean;
+  data: any[];
+}
+
+export interface Controller {
+  type: ControllerType | string;
+  name: string;
   label?: string;
-  type?: FormControllerTypesProps;
   placeholder?: string;
-  groupName?: string;
+  required?: boolean;
+  disabled?: boolean;
+  tooltip?: string;
+  helperText?: string;
+  colSpan?: number;
   defaultValue?: any;
-  description?: string;
-  visible?: (value: any) => boolean;
-  labelProps?: HTMLProps<HTMLLabelElement>;
-  className?: string;
-  optional?: boolean;
-  disabled?: ((data: Date) => boolean) | boolean;
-  maximun?: number;
-  flow?: (data: any) => boolean;
-  reactNode?: ReactNode;
-  verify?: boolean;
-  id?: string;
-}
-
-// Options specific properties
-interface OptionsProps {
-  options?: { label: string; value: string }[] | "from-api";
-  optionsApiOptions?: {
-    api: string;
-    method: "get" | "post" | "patch" | "put" | "delete";
-    dependingContrllerName?: string;
-    options?: AxiosRequestConfig<{}> | undefined;
-    includeAll?: boolean;
-  };
-  willNeedControllersNames?: string[];
-  emptyIndicator?: ReactNode;
-}
-
-// Group checkbox specific properties
-interface GroupCheckboxProps {
-  groupCheckbox?: Array<
-    Omit<BaseFormControllerProps & OptionsProps, "groupCheckbox"> & {
-      options: { label: string; value: string }[];
-    }
-  >;
-}
-
-// Group controllers specific properties
-interface GroupControllersProps {
-  groupControllers?: Array<Omit<FormControllerProps, "groupControllers">>;
-}
-
-// Mapper controller specific properties
-interface MapperControllerProps {
-  mapControllerType?: "group" | "each";
-  mapController?: (
-    values: any
-  ) => FormControllerProps[] | Promise<FormControllerProps[]>;
-  cant?: { both: string[] }[];
-}
-
-// File upload specific properties
-interface FileUploadProps {
-  maxFiles?: number;
-  acceptedFileTypes?: Record<string, string[]>;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: SelectOption[] | { label: string; value: string | number }[];
+  apiUrl?: string;
+  transformResponse?: (data: any) => SelectOption[];
+  searchParam?: string;
+  minSearchLength?: number;
+  maxSelections?: number;
   multiple?: boolean;
-}
-
-// Date picker specific properties
-interface DatePickerProps {
-  mode?: "default" | "single" | "multiple" | "range";
+  accept?: string;
+  maxSize?: number;
   rows?: number;
-  outline?:
-    | "link"
-    | "default"
-    | "destructive"
-    | "outline"
-    | "secondary"
-    | "ghost";
+  cols?: number;
+  pattern?: string;
+  autoComplete?: string;
+  readOnly?: boolean;
+  renderComponent?: (props: any) => JSX.Element;
+  [key: string]: any;
 }
 
-// Combine all properties into one type
-export type FormControllerProps = BaseFormControllerProps &
-  OptionsProps &
-  GroupCheckboxProps &
-  GroupControllersProps &
-  MapperControllerProps &
-  FileUploadProps &
-  DatePickerProps;
+export interface Step {
+  title: string;
+  description?: string;
+  controllers: Controller[];
+}
 
-// API options type
-export type apiOptionsType = {
-  api: string;
-  method: "POST" | "PATCH" | "PUT" | "DELETE" | "GET";
-  options?: AxiosRequestConfig<{}> | undefined;
-  errorHandler?: (data: any, type: errorHandlertType) => void;
+export interface ApiOptions {
+  method?: string;
+  api?: string;
+  options?: any;
   onFinish?: (data: any) => void;
-};
+}
 
-export type errorHandlertType = "form" | "modal" | "toast" | "redirect";
-
-export type PropsPropsType = {
-  form?: JSX.IntrinsicElements["form"] & {
-    ref: React.Ref<HTMLFormElement>;
-  };
-  controllerBase?: JSX.IntrinsicElements["div"] & {
-    ref?: React.Ref<HTMLDivElement>;
-  };
-  groupcontrollerBase?: JSX.IntrinsicElements["div"] & {
-    ref?: React.Ref<HTMLDivElement>;
-  };
-  submitBtn?: JSX.IntrinsicElements["button"];
-};
-
-export type DynamicFormHanldeSubmitParamType<T extends ZodType<any, any, any>> =
-  {
-    reset: UseFormReset<any>;
-    values: z.infer<T>;
-    setError: UseFormSetError<z.TypeOf<T>>;
-  };
-
-export type StepsType<T> = {
-  stepName?: string;
-  stepNameByNumber?: number;
-  stepSchema?: T;
-  skip?: (value: any) => boolean;
-  condition?: (value: any) => string;
-  controllers: FormControllerProps[];
-};
-
-export type DynamicFormProps<T extends z.ZodType<any, any>> = {
-  controllers?: FormControllerProps[];
-  steps?: StepsType<T>[];
-  stepPreview?: (value: any) => ReactNode;
+export interface DynamicFormProps<T extends z.ZodType<any, any>> {
+  controllers?: Controller[];
   formSchema?: T;
-  handleSubmit?: (params: DynamicFormHanldeSubmitParamType<T>) => Promise<void>;
-  apiOptions?: apiOptionsType;
-  tricker?: (props: any) => ReactNode;
-  props?: PropsPropsType;
-  formtype?: "normal" | "steper";
-  submitBtn?: HTMLProps<HTMLButtonElement> & {
-    label: string;
+  handleSubmit?: (data: {
+    values: z.infer<T>;
+    setError: any;
+    reset: () => void;
+  }) => Promise<void>;
+  apiOptions?: ApiOptions;
+  tricker?: (props: {
+    submitLoading: boolean;
+    isValid: boolean;
+  }) => JSX.Element;
+  props?: {
+    form?: any;
+    grid?: {
+      className?: string;
+    };
+    controller?: {
+      className?: string;
+    };
   };
   modalComponenet?: (
-    data: ModalType,
+    modal: ModalType,
     setModal: (modal: ModalType) => void
   ) => ReactNode;
-};
-
-export type ModalType = {
-  open: boolean;
-  data: any;
-};
-
-// Generic form context type that can be used across components
-export type FormContextType = {
-  form: any;
-  controllers?: FormControllerProps[];
-  handleSubmit: (values: any) => void;
-  formLoading: boolean;
-};
-
-// File upload types
-export interface FileWithPreview extends File {
-  preview: string;
-}
-
-// Other enums and constants
-export enum SUCCESSTYPE {
-  VERIFIED = "VERIFIED",
-  SUCCESS = "SUCCESS",
-  ERROR = "ERROR",
+  steps?: Step[];
+  formtype?: "normal" | "steper";
+  stepPreview?: boolean;
+  submitBtn?: {
+    label?: string;
+    className?: string;
+    type?: string;
+    disabled?: boolean;
+  };
 }

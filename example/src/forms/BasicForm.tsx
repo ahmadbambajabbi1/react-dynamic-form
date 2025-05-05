@@ -35,7 +35,7 @@ const BasicForm: React.FC = () => {
     multiSelect: z.array(z.string()).optional(),
     multiSelectFromApi: z.array(z.string()).optional(),
   });
-  const controllers: FormControllerTypesProps[] = [
+  const controllers = [
     {
       name: "name",
       label: "Full Name",
