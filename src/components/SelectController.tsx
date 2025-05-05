@@ -42,6 +42,8 @@ export const SelectController: React.FC<SelectControllerProps> = ({
     className,
     type,
     showError = false,
+    // Added support for dependent controllers
+    optionsApiOptions,
   } = controller;
 
   const error = form.formState.errors[name]?.message as string;
@@ -78,8 +80,11 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           error={error}
           showError={showError}
           className={className}
+          // Pass the optionsApiOptions for dependent controllers
+          optionsApiOptions={optionsApiOptions}
           // Handle errors gracefully by providing fallback options
           options={options || []}
+          controller={controller}
         />
       );
 
@@ -97,8 +102,11 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           error={error}
           showError={showError}
           className={className}
+          // Pass the optionsApiOptions for dependent controllers
+          optionsApiOptions={optionsApiOptions}
           // Handle errors gracefully by providing fallback options
           options={options || []}
+          controller={controller}
         />
       );
 

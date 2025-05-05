@@ -3,17 +3,15 @@ import DynamicForm from "./DynamicForm";
 import { initConfig } from "./utils/axiosConfig";
 
 // Export component types
-// export type {
-//   FormControllerProps,
-//   FormControllerTypesProps,
-//   DynamicFormProps,
-//   StepsType,
-//   DynamicFormHanldeSubmitParamType,
-//   apiOptionsType,
-//   PropsPropsType,
-//   errorHandlertType,
-//   FileWithPreview,
-// } from "./types";
+export type {
+  DynamicFormProps,
+  StepsType,
+  apiOptionsType,
+  PropsPropsType,
+  errorHandlertType,
+  FileWithPreview,
+  ControllerType,
+} from "./types";
 
 // Export utility functions
 export {

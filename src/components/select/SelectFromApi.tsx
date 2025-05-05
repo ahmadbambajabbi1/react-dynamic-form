@@ -17,7 +17,6 @@ export const SelectFromApi = (props: any) => {
     size = "md",
     showError = true, // Add showError prop with default true
   } = props;
-
   const {
     selectedOption,
     isOpen,

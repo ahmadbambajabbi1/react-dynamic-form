@@ -6,6 +6,7 @@ import {
   SelectOption,
 } from "./types";
 import { useMultiSelectFromApiController } from "./useMultiSelectFromApiController";
+import { useFormContext } from "react-hook-form";
 import Axios from "../../utils/axiosConfig";
 
 export const useSearchableMultiSelectFromApiController = (
@@ -18,6 +19,8 @@ export const useSearchableMultiSelectFromApiController = (
     searchParam = "q",
     debounceMs = 300,
     minSearchLength = 2,
+    optionsApiOptions,
+    name,
     ...multiSelectProps
   } = props;
 
@@ -29,11 +32,22 @@ export const useSearchableMultiSelectFromApiController = (
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousSearchRef = useRef<string>("");
 
+  // Form context to watch dependent controllers
+  const formContext = useFormContext();
+
+  // Watch for dependent controller value changes
+  const dependentValue =
+    optionsApiOptions?.dependingContrllerName && formContext
+      ? formContext.watch(optionsApiOptions.dependingContrllerName)
+      : undefined;
+
   // Use the base API controller
   const baseApiMultiSelect = useMultiSelectFromApiController({
     apiUrl,
     params,
     transformResponse,
+    optionsApiOptions,
+    name,
     options: props.options || [],
     ...multiSelectProps,
   });
@@ -49,18 +63,50 @@ export const useSearchableMultiSelectFromApiController = (
         return;
       }
 
+      // Don't search if dependent field has no value, unless includeAll is true
+      if (
+        optionsApiOptions?.dependingContrllerName &&
+        !dependentValue &&
+        !optionsApiOptions.includeAll
+      ) {
+        setFilteredOptions([]);
+        return;
+      }
+
       // Store current search term to prevent duplicate searches
       previousSearchRef.current = term;
       setLoadingResults(true);
 
       try {
+        // Prepare parameters for API call
+        let requestParams = {
+          ...params,
+          [searchParam]: term,
+        };
+
+        // Handle dependent controller
+        if (optionsApiOptions?.dependingContrllerName && dependentValue) {
+          // Extract parameter name without 'Id' suffix
+          const paramName = optionsApiOptions.dependingContrllerName.replace(
+            /Id$/,
+            ""
+          );
+
+          // Convert to camelCase with first letter uppercase for the filter parameter
+          const paramToCapitalize = paramName
+            ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
+            : "";
+
+          // Add the filter parameter
+          requestParams = {
+            ...requestParams,
+            [`filterBy${paramToCapitalize}Id`]: dependentValue,
+            ...(optionsApiOptions.params || {}),
+          };
+        }
+
         // Use our custom Axios instance
-        const response = await Axios.get(apiUrl, {
-          params: {
-            ...params,
-            [searchParam]: term,
-          },
-        });
+        const response = await Axios.get(apiUrl, { params: requestParams });
 
         // Process the response data
         let searchResults;
@@ -73,6 +119,23 @@ export const useSearchableMultiSelectFromApiController = (
         }
 
         setFilteredOptions(searchResults);
+
+        // If we have a formContext and selected values
+        if (formContext && name) {
+          const currentValues = formContext.getValues(name);
+
+          if (Array.isArray(currentValues) && currentValues.length > 0) {
+            // Filter out values that are no longer valid
+            const validValues = currentValues.filter((value) =>
+              searchResults.some((option: any) => option.value === value)
+            );
+
+            // If any values were removed, update the form
+            if (validValues.length !== currentValues.length) {
+              formContext.setValue(name, validValues, { shouldValidate: true });
+            }
+          }
+        }
       } catch (err) {
         console.error("Error searching options:", err);
         // Fall back to client-side filtering if API search fails
@@ -92,6 +155,10 @@ export const useSearchableMultiSelectFromApiController = (
       transformResponse,
       baseApiMultiSelect.options,
       minSearchLength,
+      optionsApiOptions,
+      dependentValue,
+      formContext,
+      name,
     ]
   );
 
@@ -131,6 +198,13 @@ export const useSearchableMultiSelectFromApiController = (
       }
     };
   }, []);
+
+  // Re-set filtered options when base options change (e.g., due to dependency changes)
+  useEffect(() => {
+    if (searchTerm.length < minSearchLength) {
+      setFilteredOptions(baseApiMultiSelect.options);
+    }
+  }, [baseApiMultiSelect.options, searchTerm, minSearchLength]);
 
   // Override input props for search functionality
   const inputProps = {

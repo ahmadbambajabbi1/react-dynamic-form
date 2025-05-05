@@ -1,3 +1,4 @@
+// src/components/select/types.ts - Updated with dependency support
 export interface SelectOption {
   value: string | number;
   label: string;
@@ -33,11 +34,19 @@ export interface SelectControllerProps extends BaseSelectProps {
   showError?: boolean;
 }
 
+// Updated with dependent controller support
+export interface ApiOptions {
+  dependingContrllerName?: string;
+  params?: Record<string, any>;
+  includeAll?: boolean;
+}
+
 export interface SelectFromApiControllerProps extends BaseSelectProps {
   apiUrl: string;
   params?: Record<string, any>;
   transformResponse?: (data: any) => SelectOption[];
   defaultValue?: string | null;
+  optionsApiOptions?: ApiOptions; // Added for dependent controller support
 }
 
 export interface SearchableSelectProps extends SelectControllerProps {

@@ -195,7 +195,16 @@ const DynamicFormExample: React.FC = () => {
       placeholder: "Select department",
       required: true,
       colSpan: 6,
-      apiUrl: "http://localhost:1993/test/see",
+      apiUrl: "http://localhost:1993/test/see/d",
+      optionsApiOptions: {
+        dependingContrllerName: "country",
+        params: {
+          // includeInactive: false,
+          paramName: "countryId",
+          sortBy: "name",
+        },
+        includeAll: true,
+      },
       options: [
         { value: "eng", label: "Engineering" },
         { value: "des", label: "Design" },

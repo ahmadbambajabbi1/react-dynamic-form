@@ -70,34 +70,34 @@
 //   multiple?: boolean;
 // };
 
-export type apiOptionsType = {
-  api: string;
-  method: "POST" | "PATCH" | "PUT" | "DELETE" | "GET";
-  options?: AxiosRequestConfig<{}> | undefined;
-  errorHandler?: (data: any, type: errorHandlertType) => void;
-  onFinish?: (data: any) => void;
-};
+// export type apiOptionsType = {
+//   api: string;
+//   method: "POST" | "PATCH" | "PUT" | "DELETE" | "GET";
+//   options?: AxiosRequestConfig<{}> | undefined;
+//   errorHandler?: (data: any, type: errorHandlertType) => void;
+//   onFinish?: (data: any) => void;
+// };
 
-export type errorHandlertType = "form" | "modal" | "toast" | "redirect";
+// export type errorHandlertType = "form" | "modal" | "toast" | "redirect";
 
-export type PropsPropsType = {
-  form?: JSX.IntrinsicElements["form"] & {
-    ref: React.Ref<HTMLFormElement>;
-  };
-  controllerBase?: JSX.IntrinsicElements["div"] & {
-    ref?: React.Ref<HTMLDivElement>;
-  };
-  groupcontrollerBase?: JSX.IntrinsicElements["div"] & {
-    ref?: React.Ref<HTMLDivElement>;
-  };
-  submitBtn?: JSX.IntrinsicElements["button"];
-  grid?: {
-    className?: string;
-  };
-  controller?: {
-    className?: string;
-  };
-};
+// export type PropsPropsType = {
+//   form?: JSX.IntrinsicElements["form"] & {
+//     ref: React.Ref<HTMLFormElement>;
+//   };
+//   controllerBase?: JSX.IntrinsicElements["div"] & {
+//     ref?: React.Ref<HTMLDivElement>;
+//   };
+//   groupcontrollerBase?: JSX.IntrinsicElements["div"] & {
+//     ref?: React.Ref<HTMLDivElement>;
+//   };
+//   submitBtn?: JSX.IntrinsicElements["button"];
+//   grid?: {
+//     className?: string;
+//   };
+//   controller?: {
+//     className?: string;
+//   };
+// };
 
 // export type DynamicFormHanldeSubmitParamType<T extends ZodType<any, any, any>> =
 //   {
@@ -106,14 +106,14 @@ export type PropsPropsType = {
 //     setError: UseFormSetError<z.TypeOf<T>>;
 //   };
 
-export type StepsType<T> = {
-  stepName?: string;
-  stepNameByNumber?: number;
-  stepSchema?: T;
-  skip?: (value: any) => boolean;
-  condition?: (value: any) => string;
-  controllers: Controller[];
-};
+// export type StepsType<T> = {
+//   stepName?: string;
+//   stepNameByNumber?: number;
+//   stepSchema?: T;
+//   skip?: (value: any) => boolean;
+//   condition?: (value: any) => string;
+//   controllers: Controller[];
+// };
 
 // export type DynamicFormProps<T extends z.ZodType<any, any>> = {
 //   controllers?: FormControllerProps[];
@@ -153,7 +153,7 @@ export type StepsType<T> = {
 //   SUCCESS = "SUCCESS",
 //   ERROR = "ERROR",
 // }
-
+// src/types/index.ts - Updated Controller interface
 import { ReactNode } from "react";
 import { z } from "zod";
 import { SelectOption } from "../components/select/types";
@@ -163,6 +163,7 @@ import { AxiosRequestConfig } from "axios";
 export interface FileWithPreview extends File {
   preview: string;
 }
+
 export enum SUCCESSTYPE {
   VERIFIED = "verified",
   SUCCESS = "success",
@@ -201,6 +202,15 @@ export interface ModalType {
   data: any[];
 }
 
+// API options for controllers that fetch options from API
+export interface OptionsApiOptions {
+  api?: string;
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  dependingContrllerName?: string;
+  parameterName?: string; // Direct parameter name
+  params?: Record<string, any>; // Add this line to support params
+  includeAll?: boolean;
+}
 export interface Controller {
   type: ControllerType | string;
   name: string;
@@ -215,7 +225,10 @@ export interface Controller {
   min?: number;
   max?: number;
   step?: number;
-  options?: SelectOption[] | { label: string; value: string | number }[];
+  options?:
+    | SelectOption[]
+    | { label: string; value: string | number }[]
+    | "from-api";
   apiUrl?: string;
   transformResponse?: (data: any) => SelectOption[];
   searchParam?: string;
@@ -230,6 +243,8 @@ export interface Controller {
   autoComplete?: string;
   readOnly?: boolean;
   renderComponent?: (props: any) => JSX.Element;
+  // Added support for dependent controllers
+  optionsApiOptions?: OptionsApiOptions;
   [key: string]: any;
 }
 
@@ -239,12 +254,34 @@ export interface Step {
   controllers: Controller[];
 }
 
-export interface ApiOptions {
-  method?: string;
-  api?: string;
-  options?: any;
+export type apiOptionsType = {
+  api: string;
+  method: "POST" | "PATCH" | "PUT" | "DELETE" | "GET";
+  options?: AxiosRequestConfig<{}> | undefined;
+  errorHandler?: (data: any, type: errorHandlertType) => void;
   onFinish?: (data: any) => void;
-}
+};
+
+export type errorHandlertType = "form" | "modal" | "toast" | "redirect";
+
+export type PropsPropsType = {
+  form?: JSX.IntrinsicElements["form"] & {
+    ref: React.Ref<HTMLFormElement>;
+  };
+  controllerBase?: JSX.IntrinsicElements["div"] & {
+    ref?: React.Ref<HTMLDivElement>;
+  };
+  groupcontrollerBase?: JSX.IntrinsicElements["div"] & {
+    ref?: React.Ref<HTMLDivElement>;
+  };
+  submitBtn?: JSX.IntrinsicElements["button"];
+  grid?: {
+    className?: string;
+  };
+  controller?: {
+    className?: string;
+  };
+};
 
 export interface DynamicFormProps<T extends z.ZodType<any, any>> {
   controllers?: Controller[];
@@ -254,7 +291,7 @@ export interface DynamicFormProps<T extends z.ZodType<any, any>> {
     setError: any;
     reset: () => void;
   }) => Promise<void>;
-  apiOptions?: ApiOptions;
+  apiOptions?: apiOptionsType;
   tricker?: (props: {
     submitLoading: boolean;
     isValid: boolean;
@@ -274,3 +311,12 @@ export interface DynamicFormProps<T extends z.ZodType<any, any>> {
     disabled?: boolean;
   };
 }
+
+export type StepsType<T> = {
+  stepName?: string;
+  stepNameByNumber?: number;
+  stepSchema?: T;
+  skip?: (value: any) => boolean;
+  condition?: (value: any) => string;
+  controllers: Controller[];
+};

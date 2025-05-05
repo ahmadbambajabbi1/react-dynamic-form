@@ -44,6 +44,8 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
     className,
     type,
     showError = false, // Default to false since parent will handle errors
+    // Added support for dependent controllers
+    optionsApiOptions,
   } = controller;
 
   const error = form.formState.errors[name]?.message as string;
@@ -81,8 +83,11 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
           error={error}
           showError={showError}
           className={className}
+          // Pass the optionsApiOptions for dependent controllers
+          optionsApiOptions={optionsApiOptions}
           // Handle errors gracefully by providing fallback options
           options={options || []}
+          controller={controller}
         />
       );
 
@@ -101,8 +106,11 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
           error={error}
           showError={showError}
           className={className}
+          // Pass the optionsApiOptions for dependent controllers
+          optionsApiOptions={optionsApiOptions}
           // Handle errors gracefully by providing fallback options
           options={options || []}
+          controller={controller}
         />
       );
 
