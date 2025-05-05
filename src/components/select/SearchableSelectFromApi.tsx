@@ -77,7 +77,7 @@ export const SearchableSelectFromApi = (props: any) => {
             flex items-center border rounded-md px-3 relative
             ${(sizeClasses as any)[size] as any}
             ${error || apiError ? "border-red-500" : "border-gray-300"}
-            ${isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""}
+            ${isOpen ? "ring-2 ring-black border-black" : ""}
             ${
               disabled
                 ? "bg-gray-100 cursor-not-allowed"
@@ -154,7 +154,7 @@ export const SearchableSelectFromApi = (props: any) => {
                   Failed to load options
                 </p>
                 <button
-                  className="text-sm text-blue-500 hover:text-blue-700"
+                  className="text-sm text-black hover:text-blue-700"
                   onClick={(e) => {
                     e.stopPropagation();
                     refresh();

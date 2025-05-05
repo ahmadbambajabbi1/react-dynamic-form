@@ -91,6 +91,12 @@ export type PropsPropsType = {
     ref?: React.Ref<HTMLDivElement>;
   };
   submitBtn?: JSX.IntrinsicElements["button"];
+  grid?: {
+    className?: string;
+  };
+  controller?: {
+    className?: string;
+  };
 };
 
 // export type DynamicFormHanldeSubmitParamType<T extends ZodType<any, any, any>> =
@@ -253,15 +259,7 @@ export interface DynamicFormProps<T extends z.ZodType<any, any>> {
     submitLoading: boolean;
     isValid: boolean;
   }) => JSX.Element;
-  props?: {
-    form?: any;
-    grid?: {
-      className?: string;
-    };
-    controller?: {
-      className?: string;
-    };
-  };
+  props?: PropsPropsType;
   modalComponenet?: (
     modal: ModalType,
     setModal: (modal: ModalType) => void

@@ -240,7 +240,7 @@ const OttpInputHandler: React.FC<OttpInputHandlerProps> = ({
                 inputMode="numeric"
                 maxLength={1}
                 className={cn(
-                  "w-12 h-12 text-center text-xl font-semibold border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                  "w-12 h-12 text-center text-xl font-semibold border rounded-md focus:ring-2 focus:ring-black focus:border-black",
                   form.formState.errors.code
                     ? "border-red-500"
                     : "border-gray-300"
@@ -282,7 +282,7 @@ const OttpInputHandler: React.FC<OttpInputHandlerProps> = ({
           type="submit"
           disabled={submitLoading}
           className={cn(
-            "w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+            "w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black",
             submitLoading && "opacity-75 cursor-not-allowed"
           )}
         >

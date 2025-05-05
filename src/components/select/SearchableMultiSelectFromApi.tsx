@@ -111,7 +111,7 @@ export const SearchableMultiSelectFromApi = (props: any) => {
                   e.stopPropagation();
                   removeOption(option);
                 }}
-                className="text-blue-500 hover:text-blue-700"
+                className="text-black hover:text-blue-700"
               >
                 <XIcon className="h-3 w-3" />
               </button>
@@ -139,7 +139,7 @@ export const SearchableMultiSelectFromApi = (props: any) => {
             flex items-center border rounded-md px-3 relative cursor-pointer
             ${(sizeClasses as any)[size] as any}
             ${error || apiError ? "border-red-500" : "border-gray-300"}
-            ${isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""}
+            ${isOpen ? "ring-2 ring-black border-black" : ""}
             ${
               disabled
                 ? "bg-gray-100 cursor-not-allowed"

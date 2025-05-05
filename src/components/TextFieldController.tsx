@@ -56,8 +56,8 @@ const TextFieldController: React.FC<TextFieldControllerProps> = ({
           name={name}
           className={cn(
             "w-full px-3 py-2 border rounded-md",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500",
-            "border-gray-300 focus:border-blue-500",
+            "focus:outline-none focus:ring-2 focus:ring-black",
+            "border-gray-300 focus:border-black",
             disabled && "bg-gray-100 cursor-not-allowed opacity-75"
           )}
           type={type}
@@ -95,10 +95,10 @@ const TextFieldController: React.FC<TextFieldControllerProps> = ({
         {...register(name)}
         className={cn(
           "w-full px-3 py-2 border rounded-md",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500",
+          "focus:outline-none focus:ring-2 focus:ring-black",
           error
             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:border-blue-500",
+            : "border-gray-300 focus:border-black",
           disabled && "bg-gray-100 cursor-not-allowed opacity-75"
         )}
         type={type}

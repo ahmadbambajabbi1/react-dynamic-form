@@ -17,6 +17,7 @@ import {
 } from "date-fns";
 import SingleDatePicker from "./Single";
 import RangeDatePicker from "./Range";
+import { determineDropdownPosition } from "../../utils/dropdown";
 
 // Define type for date range value
 export interface DateRange {
@@ -32,6 +33,8 @@ type DateHandlerProps = {
 const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -49,6 +52,19 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Calculate position when dropdown opens
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      setPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 380, // Approx height of calendar
+          margin: 8,
+          preferredPosition: "bottom",
+        })
+      );
+    }
+  }, [isOpen]);
 
   // Render date display based on mode
   const renderDateDisplay = () => {
@@ -138,6 +154,7 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
     <div className="relative w-full" ref={containerRef}>
       {/* Date Display Trigger */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -152,7 +169,12 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
 
       {/* Dropdown Calendar */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-[320px] bg-white border rounded-lg shadow-xl p-4">
+        <div
+          className={cn(
+            "absolute z-50 w-[320px] bg-white border rounded-lg shadow-xl p-4",
+            position === "top" ? "bottom-full mb-1" : "top-full mt-1"
+          )}
+        >
           {/* Quick Actions */}
           <div className="flex space-x-2 mb-4 overflow-x-auto">
             {(controller.mode === "range"

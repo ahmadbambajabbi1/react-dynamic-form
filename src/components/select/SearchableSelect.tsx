@@ -73,7 +73,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
             flex items-center border rounded-md px-3 relative
             ${sizeClasses[size]}
             ${error ? "border-red-500" : "border-gray-300"}
-            ${isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""}
+            ${isOpen ? "ring-2 ring-black border-black" : ""}
             ${
               disabled
                 ? "bg-gray-100 cursor-not-allowed"

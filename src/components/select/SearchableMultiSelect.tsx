@@ -90,7 +90,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
             flex items-center border rounded-md px-3 relative
             ${sizeClasses[size]}
             ${error ? "border-red-500" : "border-gray-300"}
-            ${isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""}
+            ${isOpen ? "ring-2 ring-black border-black" : ""}
             ${
               disabled
                 ? "bg-gray-100 cursor-not-allowed"
@@ -110,7 +110,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
                     <span className="truncate">{option.label}</span>
                     <button
                       type="button"
-                      className="ml-1 text-blue-500 hover:text-blue-700 focus:outline-none"
+                      className="ml-1 text-black hover:text-blue-700 focus:outline-none"
                       onClick={(e) => {
                         e.stopPropagation();
                         removeOption(option);
@@ -205,7 +205,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
                         w-4 h-4 mr-3 flex-shrink-0 border rounded
                         ${
                           isSelected(option)
-                            ? "bg-blue-500 border-blue-500 text-white"
+                            ? "bg-black border-black text-white"
                             : "border-gray-300"
                         }
                       `}

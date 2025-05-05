@@ -123,9 +123,7 @@ const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
                     : "hover:bg-gray-100"
                 }
                 ${
-                  isToday && !isSelected
-                    ? "border border-blue-500 text-blue-500"
-                    : ""
+                  isToday && !isSelected ? "border border-black text-black" : ""
                 }
                 ${
                   isDisabled

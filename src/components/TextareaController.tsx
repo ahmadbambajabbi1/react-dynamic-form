@@ -52,7 +52,7 @@ const TextareaController: React.FC<TextareaControllerProps> = ({
           rows={rows}
           disabled={disabled}
           className={cn(
-            "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]",
+            "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black min-h-[100px]",
             controller?.className
           )}
           {...rest}
@@ -83,10 +83,10 @@ const TextareaController: React.FC<TextareaControllerProps> = ({
         rows={rows}
         disabled={disabled}
         className={cn(
-          "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]",
+          "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black min-h-[100px]",
           error
             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:border-blue-500",
+            : "border-gray-300 focus:border-black",
           controller?.className
         )}
         {...rest}

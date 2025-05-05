@@ -197,7 +197,7 @@ const PhoneNumberController: React.FC<PhoneNumberControllerProps> = ({
               placeholder="Search country, code, or dial code"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-2 py-1 border rounded-md outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 py-1 border rounded-md outline-none focus:ring-2 focus:ring-black"
             />
           </div>
 

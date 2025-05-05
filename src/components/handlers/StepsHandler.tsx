@@ -103,7 +103,7 @@ const StepsHandler: React.FC<StepsHandlerProps> = ({
                     <div
                       className={cn(
                         "absolute w-full h-1 top-4 left-1/2",
-                        isCompleted ? "bg-blue-500" : "bg-gray-200"
+                        isCompleted ? "bg-black" : "bg-gray-200"
                       )}
                       style={{ width: "calc(100% - 2rem)" }}
                     />
@@ -114,9 +114,9 @@ const StepsHandler: React.FC<StepsHandlerProps> = ({
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium z-10",
                       isActive
-                        ? "bg-blue-500 text-white"
+                        ? "bg-black text-white"
                         : isCompleted
-                        ? "bg-blue-500 text-white"
+                        ? "bg-black text-white"
                         : "bg-gray-200 text-gray-600"
                     )}
                   >
@@ -144,7 +144,7 @@ const StepsHandler: React.FC<StepsHandlerProps> = ({
                     className={cn(
                       "mt-2 text-sm",
                       isActive
-                        ? "text-blue-500 font-medium"
+                        ? "text-black font-medium"
                         : isCompleted
                         ? "text-gray-700"
                         : "text-gray-500"

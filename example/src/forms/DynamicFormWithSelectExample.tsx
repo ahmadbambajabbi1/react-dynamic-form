@@ -74,6 +74,7 @@ const DynamicFormExample: React.FC = () => {
       name: "date",
       label: "date",
       placeholder: "Enter date",
+      mode: "range",
       required: true,
       colSpan: 12,
     },
@@ -369,7 +370,7 @@ const DynamicFormExample: React.FC = () => {
           }}
           submitBtn={{
             label: "Submit Form",
-            className: "w-full bg-blue-600 hover:bg-blue-700",
+            className: "w-full bg-black hover:bg-black text-white",
           }}
         />
       )}

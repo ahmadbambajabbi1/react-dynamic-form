@@ -66,7 +66,7 @@ const CheckBoxController: React.FC<CheckBoxControllerProps> = ({
               onChange={(e) => setIsChecked(e.target.checked)}
               disabled={disabled}
               className={cn(
-                "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500",
+                "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-black",
                 disabled && "opacity-50 cursor-not-allowed"
               )}
               {...rest}
@@ -121,7 +121,7 @@ const CheckBoxController: React.FC<CheckBoxControllerProps> = ({
                   setSelectedValues(newSelected);
                 }}
                 disabled={disabled || item.disabled}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-black"
                 {...rest}
               />
               <label
@@ -170,7 +170,7 @@ const CheckBoxController: React.FC<CheckBoxControllerProps> = ({
             id={name}
             disabled={disabled}
             className={cn(
-              "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500",
+              "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-black",
               disabled && "opacity-50 cursor-not-allowed",
               error && "border-red-500"
             )}
@@ -235,7 +235,7 @@ const CheckBoxController: React.FC<CheckBoxControllerProps> = ({
                 }}
                 disabled={disabled || item.disabled}
                 className={cn(
-                  "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500",
+                  "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-black",
                   error && "border-red-500"
                 )}
                 {...rest}
