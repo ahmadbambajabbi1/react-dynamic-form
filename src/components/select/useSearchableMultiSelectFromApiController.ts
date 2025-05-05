@@ -1,4 +1,3 @@
-// src/components/select/useSearchableMultiSelectFromApiController.ts
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   SearchableMultiSelectFromApiProps,
@@ -31,17 +30,15 @@ export const useSearchableMultiSelectFromApiController = (
   const [loadingResults, setLoadingResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousSearchRef = useRef<string>("");
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Get form context safely with a try/catch
   let formContext;
   try {
     formContext = useFormContext();
   } catch (e) {
-    // Form context not available, this is fine for standalone usage
     formContext = null;
   }
 
-  // Safely get the dependent value
   let dependentValue = undefined;
   if (formContext && optionsApiOptions?.dependingContrllerName) {
     try {
@@ -53,7 +50,6 @@ export const useSearchableMultiSelectFromApiController = (
     }
   }
 
-  // Use the base API controller
   const baseApiMultiSelect = useMultiSelectFromApiController({
     apiUrl,
     params,
@@ -64,18 +60,16 @@ export const useSearchableMultiSelectFromApiController = (
     ...multiSelectProps,
   });
 
-  // Search function with API call
   const searchOptions = useCallback(
     async (term: string) => {
-      // Don't search if term is too short or identical to previous search
       if (term.length < minSearchLength || term === previousSearchRef.current) {
         if (term.length < minSearchLength) {
           setFilteredOptions(baseApiMultiSelect.options);
+          setLoadingResults(false);
         }
         return;
       }
 
-      // Don't search if dependent field has no value, unless includeAll is true
       if (
         optionsApiOptions?.dependingContrllerName &&
         !dependentValue &&
@@ -85,31 +79,31 @@ export const useSearchableMultiSelectFromApiController = (
         return;
       }
 
-      // Store current search term to prevent duplicate searches
       previousSearchRef.current = term;
       setLoadingResults(true);
 
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
       try {
-        // Prepare parameters for API call
         let requestParams = {
           ...params,
           [searchParam]: term,
         };
 
-        // Handle dependent controller
         if (optionsApiOptions?.dependingContrllerName && dependentValue) {
-          // Extract parameter name without 'Id' suffix
           const paramName = optionsApiOptions.dependingContrllerName.replace(
             /Id$/,
             ""
           );
-
-          // Convert to camelCase with first letter uppercase for the filter parameter
           const paramToCapitalize = paramName
             ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
             : "";
-
-          // Add the filter parameter
           requestParams = {
             ...requestParams,
             [`filterBy${paramToCapitalize}Id`]: dependentValue,
@@ -117,10 +111,11 @@ export const useSearchableMultiSelectFromApiController = (
           };
         }
 
-        // Use our custom Axios instance
-        const response = await Axios.get(apiUrl, { params: requestParams });
+        const response = await Axios.get(apiUrl, {
+          params: requestParams,
+          signal: abortControllerRef.current.signal,
+        });
 
-        // Process the response data
         let searchResults;
         if (typeof transformResponse === "function") {
           searchResults = transformResponse(response.data);
@@ -132,18 +127,15 @@ export const useSearchableMultiSelectFromApiController = (
 
         setFilteredOptions(searchResults);
 
-        // If we have a formContext and selected values - with safety checks
         if (formContext && name) {
           try {
             const currentValues = formContext.getValues(name);
 
             if (Array.isArray(currentValues) && currentValues.length > 0) {
-              // Filter out values that are no longer valid
               const validValues = currentValues.filter((value) =>
                 searchResults.some((option: any) => option.value === value)
               );
 
-              // If any values were removed, update the form
               if (validValues.length !== currentValues.length) {
                 formContext.setValue(name, validValues, {
                   shouldValidate: true,
@@ -154,16 +146,19 @@ export const useSearchableMultiSelectFromApiController = (
             console.warn("Error validating current values:", e);
           }
         }
-      } catch (err) {
-        console.error("Error searching options:", err);
-        // Fall back to client-side filtering if API search fails
-        setFilteredOptions(
-          baseApiMultiSelect.options.filter((option) =>
-            option.label.toLowerCase().includes(term.toLowerCase())
-          )
-        );
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          console.error("Error searching options:", err);
+          setFilteredOptions(
+            baseApiMultiSelect.options.filter((option) =>
+              option.label.toLowerCase().includes(term.toLowerCase())
+            )
+          );
+        }
       } finally {
-        setLoadingResults(false);
+        if (abortControllerRef.current?.signal.aborted === false) {
+          setLoadingResults(false);
+        }
       }
     },
     [
@@ -180,27 +175,23 @@ export const useSearchableMultiSelectFromApiController = (
     ]
   );
 
-  // Properly debounced search effect
   const handleSearchChange = useCallback(
     (term: string) => {
       setSearchTerm(term);
 
-      // Clear existing timeout
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
       }
 
-      // Don't create a new timeout for empty or too-short searches
       if (term.length < minSearchLength) {
         setFilteredOptions(baseApiMultiSelect.options);
         setLoadingResults(false);
         return;
       }
 
-      // Set loading state immediately for better UX
       setLoadingResults(true);
 
-      // Create new debounced search
       searchTimeoutRef.current = setTimeout(() => {
         searchOptions(term);
       }, debounceMs);
@@ -208,23 +199,23 @@ export const useSearchableMultiSelectFromApiController = (
     [searchOptions, minSearchLength, debounceMs, baseApiMultiSelect.options]
   );
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
-  // Re-set filtered options when base options change (e.g., due to dependency changes)
   useEffect(() => {
     if (searchTerm.length < minSearchLength) {
       setFilteredOptions(baseApiMultiSelect.options);
     }
   }, [baseApiMultiSelect.options, searchTerm, minSearchLength]);
 
-  // Override input props for search functionality
   const inputProps = {
     ...baseApiMultiSelect.inputProps,
     value: baseApiMultiSelect.isOpen
@@ -241,7 +232,6 @@ export const useSearchableMultiSelectFromApiController = (
       : props.placeholder || "Select options",
   };
 
-  // Clear search when closing menu
   useEffect(() => {
     if (!baseApiMultiSelect.isOpen) {
       setSearchTerm("");

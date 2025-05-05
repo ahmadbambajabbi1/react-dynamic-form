@@ -1,4 +1,3 @@
-// src/components/select/useSelectFromApiController.ts
 import {
   SelectFromApiControllerProps,
   SelectFromApiControllerReturn,
@@ -26,17 +25,15 @@ export const useSelectFromApiController = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const hasFetchedRef = useRef(false);
+  const prevDependentValueRef = useRef<any>(undefined);
 
-  // Get form context safely with a try/catch
   let formContext;
   try {
     formContext = useFormContext();
   } catch (e) {
-    // Form context not available, this is fine for standalone usage
     formContext = null;
   }
 
-  // Safely get the dependent value without useWatch
   let dependentValue = undefined;
   if (formContext && optionsApiOptions?.dependingContrllerName) {
     try {
@@ -48,7 +45,6 @@ export const useSelectFromApiController = (
     }
   }
 
-  // Create base select controller
   const baseSelect = useSelectController({
     ...selectProps,
     name,
@@ -58,7 +54,12 @@ export const useSelectFromApiController = (
 
   const fetchOptions = useCallback(
     async (forceFetch: boolean = false) => {
-      if (!forceFetch && hasFetchedRef.current) return;
+      const shouldSkipFetch =
+        !forceFetch &&
+        hasFetchedRef.current &&
+        dependentValue === prevDependentValueRef.current;
+
+      if (shouldSkipFetch) return;
 
       if (
         optionsApiOptions?.dependingContrllerName &&
@@ -66,6 +67,7 @@ export const useSelectFromApiController = (
         !optionsApiOptions.includeAll
       ) {
         setOptions([]);
+        prevDependentValueRef.current = dependentValue;
         return;
       }
 
@@ -73,29 +75,23 @@ export const useSelectFromApiController = (
       setError(null);
 
       try {
-        // Start with base params without paramName property
         let requestParams: Record<string, any> = {};
 
-        // Handle the paramName correctly
         if (optionsApiOptions?.params) {
           const { paramName, ...otherParams } = optionsApiOptions.params;
           Object.assign(requestParams, otherParams);
 
-          // If we have a paramName and dependent value, use it
           if (
             paramName &&
             optionsApiOptions?.dependingContrllerName &&
             dependentValue
           ) {
             requestParams[paramName] = dependentValue;
-          }
-          // If we have a paramName but no dependent value, use empty string or null
-          else if (paramName) {
+          } else if (paramName) {
             requestParams[paramName] = dependentValue || "";
           }
         }
 
-        // If no paramName specified but we have a dependent controller, use default naming convention
         if (
           !optionsApiOptions?.params?.paramName &&
           optionsApiOptions?.dependingContrllerName &&
@@ -111,7 +107,6 @@ export const useSelectFromApiController = (
           requestParams[`filterBy${paramToCapitalize}Id`] = dependentValue;
         }
 
-        // Add any additional params from props
         Object.assign(requestParams, params);
 
         const response = await Axios.get(apiUrl, { params: requestParams });
@@ -127,8 +122,8 @@ export const useSelectFromApiController = (
 
         setOptions(transformedOptions);
         hasFetchedRef.current = true;
+        prevDependentValueRef.current = dependentValue;
 
-        // Validate current value safely
         if (formContext && name) {
           try {
             const currentValue = formContext.getValues(name);
@@ -174,21 +169,22 @@ export const useSelectFromApiController = (
 
   const refresh = useCallback(() => {
     hasFetchedRef.current = false;
+    prevDependentValueRef.current = undefined;
     return fetchOptions(true);
-  }, []);
+  }, [fetchOptions]);
 
-  // Initial fetch
   useEffect(() => {
     fetchOptions();
   }, []);
 
-  // Re-fetch when dependent value changes
   useEffect(() => {
-    if (optionsApiOptions?.dependingContrllerName) {
-      hasFetchedRef.current = false;
+    if (
+      optionsApiOptions?.dependingContrllerName &&
+      dependentValue !== prevDependentValueRef.current
+    ) {
       fetchOptions(true);
     }
-  }, [dependentValue, optionsApiOptions?.dependingContrllerName]);
+  }, [dependentValue, fetchOptions, optionsApiOptions?.dependingContrllerName]);
 
   return {
     ...baseSelect,

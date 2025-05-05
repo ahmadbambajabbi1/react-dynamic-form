@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
 import { Controller, FileWithPreview } from "../../types";
@@ -24,36 +24,43 @@ const FileUploadHandler: React.FC<FileUploadProps> = ({
 }) => {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
 
-  // Default to single file upload if not specified
-  const multiple =
-    controller.multiple !== undefined ? controller.multiple : false;
-  const maxFiles = controller.maxFiles || (multiple ? 4 : 1);
-  const acceptedFileTypes =
-    controller.acceptedFileTypes || DEFAULT_ACCEPTED_FILE_TYPES;
+  const multiple = useMemo(
+    () => (controller.multiple !== undefined ? controller.multiple : false),
+    [controller.multiple]
+  );
 
-  // Initialize files from field value if present
+  const maxFiles = useMemo(
+    () => controller.maxFiles || (multiple ? 4 : 1),
+    [controller.maxFiles, multiple]
+  );
+
+  const acceptedFileTypes = useMemo(
+    () => controller.acceptedFileTypes || DEFAULT_ACCEPTED_FILE_TYPES,
+    [controller.acceptedFileTypes]
+  );
+
   useEffect(() => {
     if (field.value && field.value.length > 0 && files.length === 0) {
-      // If the field has value but no previews, try to create previews
-      // This would happen if the form is pre-filled
+      let filesWithPreviews: FileWithPreview[] = [];
+
       if (Array.isArray(field.value)) {
-        const filesWithPreviews = field.value.map((file: File) =>
+        filesWithPreviews = field.value.map((file: File) =>
           Object.assign(file, {
             preview: URL.createObjectURL(file),
           })
         );
-        setFiles(filesWithPreviews);
       } else if (field.value instanceof File) {
-        // Handle single file case
-        const fileWithPreview = Object.assign(field.value, {
-          preview: URL.createObjectURL(field.value),
-        });
-        setFiles([fileWithPreview]);
+        filesWithPreviews = [
+          Object.assign(field.value, {
+            preview: URL.createObjectURL(field.value),
+          }),
+        ];
       }
-    }
-  }, [field.value]);
 
-  // Clean up object URLs on unmount
+      setFiles(filesWithPreviews);
+    }
+  }, [field.value, files.length]);
+
   useEffect(() => {
     return () => {
       files.forEach((file) => {
@@ -67,7 +74,6 @@ const FileUploadHandler: React.FC<FileUploadProps> = ({
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (!multiple && acceptedFiles.length > 0) {
-        // For single file upload, just take the first file
         const file = acceptedFiles[0];
         const fileWithPreview = Object.assign(file, {
           preview: URL.createObjectURL(file),
@@ -76,7 +82,6 @@ const FileUploadHandler: React.FC<FileUploadProps> = ({
         setFiles([fileWithPreview]);
         form.setValue(controller?.name || "file", fileWithPreview);
       } else {
-        // For multiple file uploads
         const newFiles = acceptedFiles.map((file) =>
           Object.assign(file, {
             preview: URL.createObjectURL(file),
@@ -85,13 +90,34 @@ const FileUploadHandler: React.FC<FileUploadProps> = ({
 
         const combinedFiles = multiple
           ? [...files, ...newFiles].slice(0, maxFiles)
-          : [newFiles[0]]; // Ensure we only keep one file for single mode
+          : [newFiles[0]];
 
         setFiles(combinedFiles);
         form.setValue(controller?.name || "files", combinedFiles);
       }
     },
     [files, multiple, maxFiles, form, controller?.name]
+  );
+
+  const removeFile = useCallback(
+    (fileToRemove: FileWithPreview) => {
+      if (fileToRemove.preview) {
+        URL.revokeObjectURL(fileToRemove.preview);
+      }
+
+      const newFiles = files.filter((file) => file !== fileToRemove);
+      setFiles(newFiles);
+
+      if (multiple) {
+        form.setValue(controller?.name || "files", newFiles);
+      } else {
+        form.setValue(
+          controller?.name || "file",
+          newFiles.length > 0 ? newFiles[0] : null
+        );
+      }
+    },
+    [files, multiple, form, controller?.name]
   );
 
   const { getRootProps, getInputProps, fileRejections, isDragActive } =
@@ -102,28 +128,7 @@ const FileUploadHandler: React.FC<FileUploadProps> = ({
       multiple: multiple,
     });
 
-  const removeFile = (fileToRemove: FileWithPreview) => {
-    // Clean up the preview URL
-    if (fileToRemove.preview) {
-      URL.revokeObjectURL(fileToRemove.preview);
-    }
-
-    const newFiles = files.filter((file) => file !== fileToRemove);
-    setFiles(newFiles);
-
-    // Update form value
-    if (multiple) {
-      form.setValue(controller?.name || "files", newFiles);
-    } else {
-      form.setValue(
-        controller?.name || "file",
-        newFiles.length > 0 ? newFiles[0] : null
-      );
-    }
-  };
-
-  // Render file previews based on whether single or multiple files
-  const renderFilePreviews = () => {
+  const renderFilePreviews = useCallback(() => {
     if (files.length === 0) return null;
 
     return (
@@ -145,7 +150,7 @@ const FileUploadHandler: React.FC<FileUploadProps> = ({
         ))}
       </div>
     );
-  };
+  }, [files, multiple, removeFile]);
 
   return (
     <div className="w-full">
@@ -218,4 +223,4 @@ const FileUploadHandler: React.FC<FileUploadProps> = ({
   );
 };
 
-export default FileUploadHandler;
+export default React.memo(FileUploadHandler);

@@ -1,7 +1,6 @@
-// src/DynamicForm.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, FormProvider } from "react-hook-form"; // Add FormProvider
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 
 import { DynamicFormProps, ModalType, SUCCESSTYPE } from "./types";
@@ -17,13 +16,9 @@ import StepsHandler from "./components/handlers/StepsHandler";
 import OttpInputHandler from "./components/OttpInputHandler";
 import Axios from "./utils/axiosConfig";
 
-// Verification constants
 const VERIFICATION_DATA_LOCASTORAGE_NAME = "verification_data";
 const VERIFICATION_VERIFY_NAME = "verification_status";
 
-/**
- * DynamicForm - A flexible form component that supports various input types and validations
- */
 const DynamicForm = <T extends z.ZodType<any, any>>({
   controllers,
   formSchema,
@@ -48,7 +43,6 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
     data: [],
   });
 
-  // Check for verification data in localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const getVerificaionFromLocalStorage = localStorage.getItem(
@@ -60,18 +54,18 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
     }
   }, []);
 
-  // Initialize form with default values
+  const defaultValues = useMemo(() => {
+    return formtype === "steper"
+      ? initializeDefaultValuesFromSteps(steps || [])
+      : initializeDefaultValues(controllers || []);
+  }, [formtype, steps, controllers]);
+
   const form = useForm<z.infer<any>>({
     resolver: formSchema ? zodResolver(formSchema) : undefined,
-    defaultValues:
-      formtype === "steper"
-        ? initializeDefaultValuesFromSteps(steps || [])
-        : initializeDefaultValues(controllers || []),
+    defaultValues,
   });
 
-  // Form submission handler
   async function onSubmit(values: z.infer<any>) {
-    console.log({ values });
     const { setError, reset } = form;
 
     if (handleSubmit) {
@@ -86,11 +80,9 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
       return;
     }
 
-    // If no custom handleSubmit provided and not in verification mode
     if (!handleSubmit && !verify) {
       setSubmitLoading(true);
       try {
-        // Use Axios for API submission
         type HttpMethod = "get" | "post" | "put" | "delete";
         const method =
           (apiOptions?.method?.toLowerCase() as HttpMethod) || "post";
@@ -100,9 +92,7 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
           apiOptions?.options
         );
 
-        // Simulated success response handling
         if (res?.status >= 200 && res.status <= 299) {
-          // Handle verification flow if needed
           if (res?.data?.action === SUCCESSTYPE.VERIFIED) {
             localStorage.setItem(
               VERIFICATION_DATA_LOCASTORAGE_NAME,
@@ -116,7 +106,6 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
             setVerify(true);
           }
 
-          // Call onFinish callback if provided
           if (
             apiOptions?.onFinish &&
             res?.data?.action !== SUCCESSTYPE.VERIFIED
@@ -128,15 +117,12 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
         }
       } catch (error) {
         console.error("API submission error:", error);
-        // Handle form errors
-        // This would need to be adapted to your error handler implementation
       } finally {
         setSubmitLoading(false);
       }
     }
   }
 
-  // If in verify mode, show the OTP input handler
   if (verify) {
     return (
       <OttpInputHandler
@@ -146,11 +132,8 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
     );
   }
 
-  // Normal form rendering
   return (
     <FormProvider {...form}>
-      {" "}
-      {/* Wrap with FormProvider */}
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         {...(props?.form ? props.form : {})}
@@ -224,4 +207,4 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
   );
 };
 
-export default DynamicForm;
+export default React.memo(DynamicForm);

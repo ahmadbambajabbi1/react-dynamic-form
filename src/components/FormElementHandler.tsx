@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Controller } from "../types";
 import {
   UseFormReturn,
@@ -11,7 +11,6 @@ import {
 import { z } from "zod";
 import { cn, generateFieldId } from "../utils";
 
-// Import form control components
 import { SelectController } from "./SelectController";
 import TextareaController from "./TextareaController";
 import CheckBoxController from "./CheckBoxController";
@@ -29,61 +28,187 @@ type FormElementHandlerProps = {
   props?: any;
 };
 
-/**
- * FormElementHandler - Renders the appropriate form control based on controller type
- */
 const FormElementHandler: React.FC<FormElementHandlerProps> = ({
   controller,
   form,
   props,
 }) => {
-  // Watch for changes in the controller's value (for mapped controllers)
   const selectedValues = useWatch({
     control: form.control,
     name: controller.name || "",
   });
 
-  // State for dynamically mapped controllers
   const [mappedControllers, setMappedControllers] = useState<Controller[]>([]);
 
-  // Handle dynamic controllers that are mapped based on a value
-  useEffect(() => {
-    const fetchControllers = async () => {
-      if (
-        controller.mapController &&
-        typeof controller.mapController === "function"
-      ) {
-        // Don't map if value is empty/undefined
-        if (
-          selectedValues === undefined ||
-          selectedValues === null ||
-          selectedValues === ""
-        ) {
-          setMappedControllers([]);
-          return;
-        }
+  const fieldId = useMemo(
+    () => generateFieldId(controller.name),
+    [controller.name]
+  );
 
-        try {
-          const newControllers = await controller.mapController(selectedValues);
-          setMappedControllers(newControllers);
-        } catch (error) {
-          console.error("Error mapping controllers:", error);
-          setMappedControllers([]);
-        }
+  const fetchMappedControllers = useCallback(async () => {
+    if (
+      controller.mapController &&
+      typeof controller.mapController === "function" &&
+      selectedValues !== undefined &&
+      selectedValues !== null &&
+      selectedValues !== ""
+    ) {
+      try {
+        const newControllers = await controller.mapController(selectedValues);
+        setMappedControllers(newControllers);
+      } catch (error) {
+        console.error("Error mapping controllers:", error);
+        setMappedControllers([]);
       }
+    } else {
+      setMappedControllers([]);
+    }
+  }, [controller.mapController, selectedValues]);
+
+  useEffect(() => {
+    fetchMappedControllers();
+  }, [fetchMappedControllers]);
+
+  const renderField = useCallback(() => {
+    if (controller.type === "react-node" && controller.reactNode) {
+      return controller.reactNode;
+    }
+
+    if (!form.register || !form.control) {
+      return null;
+    }
+
+    const field: ControllerRenderProps = {
+      ...form.register(controller.name || ""),
+      value: form.getValues(controller.name || ""),
+      onChange: (event) => {
+        form.setValue(controller.name || "", event?.target?.value || event);
+      },
+      onBlur: () => {},
     };
 
-    fetchControllers();
-  }, [selectedValues, controller.mapController]);
+    switch (controller.type) {
+      case "phone-number":
+        return (
+          <PhoneNumberController
+            controller={controller}
+            field={field}
+            form={form}
+          />
+        );
 
-  // Generate a unique ID for the input field
-  const fieldId = generateFieldId(controller.name);
+      case "date":
+        return <DateHandler controller={controller} field={field} />;
+
+      case "select":
+      case "select-from-api":
+      case "searchable-select":
+      case "searchable-select-from-api":
+        return (
+          <SelectController
+            controller={{
+              ...controller,
+              label: undefined,
+              showError: false,
+            }}
+            field={field}
+            form={form}
+          />
+        );
+
+      case "multi-select":
+      case "multi-select-from-api":
+      case "searchable-multi-select":
+      case "searchable-multi-select-from-api":
+        return (
+          <MultiSelectController
+            controller={{
+              ...controller,
+              label: undefined,
+              showError: false,
+            }}
+            field={field}
+            form={form}
+          />
+        );
+
+      case "textarea":
+        return (
+          <TextareaController
+            controller={controller}
+            field={field}
+            name={controller.name || ""}
+            form={form}
+          />
+        );
+
+      case "group-checkbox":
+        return controller?.groupCheckbox?.map((checkbox: any, index: any) => (
+          <React.Fragment key={`${index}-${checkbox?.label}-${checkbox?.name}`}>
+            <label className="block mb-1 font-medium text-sm">
+              {checkbox?.label || ""}
+            </label>
+            <CheckBoxController
+              form={form}
+              items={checkbox?.options !== "from-api" ? checkbox.options : []}
+              baseClassName="flex flex-wrap gap-4"
+              checkBoxController={checkbox}
+              field={field}
+              name={checkbox?.name}
+              controller={controller}
+              type={checkbox?.type}
+              colSpan={checkbox?.colSpan}
+              {...checkbox}
+            />
+          </React.Fragment>
+        ));
+
+      case "checkbox":
+        return (
+          <CheckBoxController
+            form={form}
+            checkBoxController={controller}
+            field={field}
+            name={controller.name || ""}
+          />
+        );
+
+      case "rich-text-editor":
+        return (
+          <RichTextEditorController
+            controller={controller}
+            field={field}
+            form={form}
+          />
+        );
+
+      case "upload":
+        return (
+          <FileUploadHandler
+            controller={controller}
+            field={field}
+            form={form}
+          />
+        );
+
+      default:
+        return (
+          <DefaultInputController
+            controller={controller}
+            field={field}
+            form={form}
+          />
+        );
+    }
+  }, [controller, form]);
+
+  const hasError = Boolean(form.formState.errors[controller.name || ""]);
+  const errorMessage =
+    form.formState.errors[controller.name || ""]?.message?.toString();
 
   return (
     <>
-      {/* Render the current controller */}
       <div className={cn("form-element", controller.className)}>
-        {/* Render field label unless it's a checkbox group (which handles its own labels) */}
         {controller.type !== "group-checkbox" && controller.label && (
           <label
             htmlFor={fieldId}
@@ -104,7 +229,6 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                 )}
               </span>
 
-              {/* Character counter for text inputs with maximum length */}
               {controller.maximun && controller.type === "text" && (
                 <span
                   className={cn(
@@ -121,193 +245,21 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
           </label>
         )}
 
-        {/* Render the appropriate input based on type */}
         <div className="mt-1">
-          {(() => {
-            // If controller has custom React node, render it directly
-            if (controller.type === "react-node" && controller.reactNode) {
-              return controller.reactNode;
-            }
+          {renderField()}
 
-            // Create the form field with appropriate renderer
-            return (
-              <div>
-                {form.register && (
-                  <div>
-                    {form.control && (
-                      <div>
-                        {(() => {
-                          // Create a field object that combines register and controller render props
-                          const field: ControllerRenderProps = {
-                            ...form.register(controller.name || ""),
-                            value: form.getValues(controller.name || ""),
-                            onChange: (event) => {
-                              form.setValue(
-                                controller.name || "",
-                                event?.target?.value || event
-                              );
-                            },
-                            onBlur: () => {}, // Ensure onBlur matches the expected type
-                          };
+          {controller?.description && (
+            <p className="mt-1 text-xs text-gray-500">
+              {controller.description}
+            </p>
+          )}
 
-                          switch (controller.type) {
-                            case "phone-number":
-                              return (
-                                <PhoneNumberController
-                                  controller={controller}
-                                  field={field}
-                                  form={form}
-                                />
-                              );
-
-                            case "date":
-                              return (
-                                <DateHandler
-                                  controller={controller}
-                                  field={field}
-                                />
-                              );
-
-                            // All select types - passing modified controller to prevent duplicate labels
-                            case "select":
-                            case "select-from-api":
-                            case "searchable-select":
-                            case "searchable-select-from-api":
-                              return (
-                                <SelectController
-                                  controller={{
-                                    ...controller,
-                                    // Remove label to prevent duplication in child components
-                                    label: undefined,
-                                    // Set showError to false explicitly to prevent double error display
-                                    showError: false,
-                                  }}
-                                  field={field}
-                                  form={form}
-                                />
-                              );
-                            // All multi-select types - passing modified controller to prevent duplicate labels
-                            case "multi-select":
-                            case "multi-select-from-api":
-                            case "searchable-multi-select":
-                            case "searchable-multi-select-from-api":
-                              return (
-                                <MultiSelectController
-                                  controller={{
-                                    ...controller,
-                                    // Remove label to prevent duplication in child components
-                                    label: undefined,
-                                    // Set showError to false explicitly to prevent double error display
-                                    showError: false,
-                                  }}
-                                  field={field}
-                                  form={form}
-                                />
-                              );
-                            case "textarea":
-                              return (
-                                <TextareaController
-                                  controller={controller}
-                                  field={field}
-                                  name={controller.name || ""}
-                                  form={form}
-                                />
-                              );
-
-                            case "group-checkbox":
-                              return controller?.groupCheckbox?.map(
-                                (checkbox: any, index: any) => (
-                                  <React.Fragment
-                                    key={`${index}-${checkbox?.label}-${checkbox?.name}`}
-                                  >
-                                    <label className="block mb-1 font-medium text-sm">
-                                      {checkbox?.label || ""}
-                                    </label>
-                                    <CheckBoxController
-                                      form={form}
-                                      items={
-                                        checkbox?.options !== "from-api"
-                                          ? checkbox.options
-                                          : []
-                                      }
-                                      baseClassName="flex flex-wrap gap-4"
-                                      checkBoxController={checkbox}
-                                      field={field}
-                                      name={checkbox?.name}
-                                      controller={controller}
-                                      type={checkbox?.type}
-                                      colSpan={checkbox?.colSpan}
-                                      {...checkbox}
-                                    />
-                                  </React.Fragment>
-                                )
-                              );
-
-                            case "checkbox":
-                              return (
-                                <CheckBoxController
-                                  form={form}
-                                  checkBoxController={controller}
-                                  field={field}
-                                  name={controller.name || ""}
-                                />
-                              );
-
-                            case "rich-text-editor":
-                              return (
-                                <RichTextEditorController
-                                  controller={controller}
-                                  field={field}
-                                  form={form}
-                                />
-                              );
-
-                            case "upload":
-                              return (
-                                <FileUploadHandler
-                                  controller={controller}
-                                  field={field}
-                                  form={form}
-                                />
-                              );
-
-                            default:
-                              return (
-                                <DefaultInputController
-                                  controller={controller}
-                                  field={field}
-                                  form={form}
-                                />
-                              );
-                          }
-                        })()}
-
-                        {/* Field description */}
-                        {controller?.description && (
-                          <p className="mt-1 text-xs text-gray-500">
-                            {controller.description}
-                          </p>
-                        )}
-
-                        {/* Field error message */}
-                        {form.formState.errors[controller.name || ""] && (
-                          <p className="mt-1 text-xs text-red-500">
-                            {form.formState.errors[
-                              controller.name || ""
-                            ]?.message?.toString()}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {hasError && (
+            <p className="mt-1 text-xs text-red-500">{errorMessage}</p>
+          )}
         </div>
       </div>
 
-      {/* Render any dynamically mapped controllers */}
       {mappedControllers?.length > 0 &&
         mappedControllers.map((mappedController, index) => {
           if (mappedController.groupControllers) {
@@ -349,4 +301,4 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
   );
 };
 
-export default FormElementHandler;
+export default React.memo(FormElementHandler);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { Controller, PropsPropsType } from "../../types";
@@ -11,9 +11,6 @@ type NormalHandlerProps = {
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
 
-/**
- * NormalHandler - Manages the form controllers in a regular (non-step) form
- */
 const NormalHandler: React.FC<NormalHandlerProps> = ({
   props,
   controllers,
@@ -21,14 +18,24 @@ const NormalHandler: React.FC<NormalHandlerProps> = ({
 }) => {
   const [controllersState, setControllersState] = useState<Controller[]>([]);
 
-  // Update controllers based on visibility conditions and form values
-  useEffect(() => {
+  const updateControllers = useCallback(() => {
+    const values = form.getValues();
     const filteredControllers = filterVisibleControllers(
       controllers || [],
-      form.getValues()
+      values
     );
     setControllersState(filteredControllers);
   }, [controllers, form]);
+  useEffect(() => {
+    updateControllers();
+  }, [updateControllers]);
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      updateControllers();
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, updateControllers]);
 
   return (
     <div
@@ -36,7 +43,6 @@ const NormalHandler: React.FC<NormalHandlerProps> = ({
       {...(props?.controllerBase || {})}
     >
       {controllersState.map((controller, index) => {
-        // Handle group controllers (controllers grouped under a heading)
         if (controller.groupControllers) {
           return (
             <div
@@ -70,7 +76,6 @@ const NormalHandler: React.FC<NormalHandlerProps> = ({
           );
         }
 
-        // Regular form controllers
         return (
           <FormElementHandler
             key={`${index}-${controller?.name}`}
@@ -84,4 +89,4 @@ const NormalHandler: React.FC<NormalHandlerProps> = ({
   );
 };
 
-export default NormalHandler;
+export default React.memo(NormalHandler);

@@ -1,25 +1,21 @@
-// src/components/DateHandler/DateHandler.tsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ControllerRenderProps } from "react-hook-form";
 import { z } from "zod";
 import { Controller } from "../../types";
 import { cn } from "../../utils";
 import {
   format,
-  addDays,
   isValid,
   startOfToday,
   startOfTomorrow,
   startOfWeek,
   endOfWeek,
-  subMonths,
-  addMonths,
+  addDays,
 } from "date-fns";
 import SingleDatePicker from "./Single";
 import RangeDatePicker from "./Range";
 import { determineDropdownPosition } from "../../utils/dropdown";
 
-// Define type for date range value
 export interface DateRange {
   from?: Date | null;
   to?: Date | null;
@@ -36,7 +32,6 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [position, setPosition] = useState<"top" | "bottom">("bottom");
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -53,12 +48,11 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
     };
   }, []);
 
-  // Calculate position when dropdown opens
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       setPosition(
         determineDropdownPosition(triggerRef.current, {
-          dropdownHeight: 380, // Approx height of calendar
+          dropdownHeight: 380,
           margin: 8,
           preferredPosition: "bottom",
         })
@@ -66,8 +60,7 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
     }
   }, [isOpen]);
 
-  // Render date display based on mode
-  const renderDateDisplay = () => {
+  const renderDateDisplay = useCallback(() => {
     if (controller.mode === "range") {
       const rangeValue = field.value as DateRange;
       if (rangeValue?.from && rangeValue?.to) {
@@ -82,14 +75,12 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
       return controller.placeholder || "Select date range";
     }
 
-    // Single date mode
     if (field.value instanceof Date && isValid(field.value)) {
       return format(field.value, "MMMM dd, yyyy");
     }
     return controller.placeholder || "Select date";
-  };
+  }, [controller.mode, controller.placeholder, field.value]);
 
-  // Quick date selection actions
   const quickActions = {
     single: [
       {
@@ -152,7 +143,6 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      {/* Date Display Trigger */}
       <button
         ref={triggerRef}
         type="button"
@@ -167,7 +157,6 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
         <CalendarIcon />
       </button>
 
-      {/* Dropdown Calendar */}
       {isOpen && (
         <div
           className={cn(
@@ -175,7 +164,6 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
             position === "top" ? "bottom-full mb-1" : "top-full mt-1"
           )}
         >
-          {/* Quick Actions */}
           <div className="flex space-x-2 mb-4 overflow-x-auto">
             {(controller.mode === "range"
               ? quickActions.range
@@ -192,7 +180,6 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
             ))}
           </div>
 
-          {/* Date Picker */}
           <div className="border-t pt-4">
             {controller.mode === "range" ? (
               <RangeDatePicker
@@ -209,7 +196,6 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
             )}
           </div>
 
-          {/* Action Buttons */}
           <div className="flex justify-between mt-4 border-t pt-3">
             <button
               type="button"
@@ -235,7 +221,6 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
   );
 };
 
-// Calendar icon component
 const CalendarIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -256,4 +241,4 @@ const CalendarIcon = () => (
   </svg>
 );
 
-export default DateHandler;
+export default React.memo(DateHandler);
