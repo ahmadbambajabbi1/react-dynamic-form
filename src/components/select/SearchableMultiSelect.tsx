@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { SearchableMultiSelectProps } from "./types";
 import { useSearchableMultiSelectController } from "./useSearchableMultiSelectController";
+import { determineDropdownPosition } from "../../utils/dropdown";
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { CheckIcon } from "../../icons/CheckIcon";
@@ -15,6 +16,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
     disabled = false,
     required = false,
     error,
+    showError = true,
     clearable = true,
     className = "",
     size = "md",
@@ -33,7 +35,33 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
     inputProps,
     filteredOptions,
     searchTerm,
+    setSearchTerm,
   } = useSearchableMultiSelectController(props);
+
+  // Add ref for trigger element and input, and state for position
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+
+  // Update dropdown position when it's opened
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      setPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
+      );
+    }
+  }, [isOpen]);
+
+  // Focus search input when dropdown is opened
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen]);
 
   // Size classes
   const sizeClasses = {
@@ -41,6 +69,9 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
     md: "h-10 text-base",
     lg: "h-12 text-lg",
   };
+
+  // Extract all properties from inputProps except 'ref' to avoid conflicts
+  const { ref: _inputRef, ...otherInputProps } = inputProps;
 
   // Render the component
   return (
@@ -54,6 +85,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
 
       <div className="relative">
         <div
+          ref={triggerRef}
           className={`
             flex items-center border rounded-md px-3 relative
             ${sizeClasses[size]}
@@ -72,7 +104,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
               {selectedOptions.length <= 3 ? (
                 selectedOptions.map((option) => (
                   <div
-                    key={option.value}
+                    key={option.value.toString()}
                     className="flex items-center bg-blue-100 text-blue-800 rounded px-2 py-0.5 text-sm"
                   >
                     <span className="truncate">{option.label}</span>
@@ -96,11 +128,18 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
             </div>
           ) : (
             <input
-              {...inputProps}
+              ref={searchInputRef}
+              {...otherInputProps}
               className="block w-full h-full outline-none bg-transparent"
               placeholder={isOpen ? searchPlaceholder : placeholder}
               readOnly={!isOpen}
               disabled={disabled}
+              value={isOpen ? searchTerm : otherInputProps.value}
+              onChange={(e) => {
+                if (isOpen) {
+                  setSearchTerm(e.target.value);
+                }
+              }}
             />
           )}
 
@@ -127,18 +166,17 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
           </div>
         </div>
 
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {/* Only show error if showError prop is true */}
+        {showError && error && (
+          <p className="mt-1 text-sm text-red-500">{error}</p>
+        )}
 
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
             className={`
               absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${
-                menuProps.position === "top"
-                  ? "bottom-full mb-1"
-                  : "top-full mt-1"
-              }
+              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
             `}
           >
             {filteredOptions.length === 0 ? (
@@ -149,7 +187,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
               <ul className="py-1">
                 {filteredOptions.map((option) => (
                   <li
-                    key={option.value}
+                    key={option.value.toString()}
                     className={`
                       px-3 py-2 cursor-pointer text-sm hover:bg-gray-100
                       ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}

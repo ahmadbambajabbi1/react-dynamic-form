@@ -1,4 +1,3 @@
-// src/components/MultiSelectController.tsx
 import React from "react";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
 import { Controller } from "../types";
@@ -44,6 +43,7 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
     maxSelections,
     className,
     type,
+    showError = false, // Default to false since parent will handle errors
   } = controller;
 
   const error = form.formState.errors[name]?.message as string;
@@ -79,6 +79,7 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
           // Handle errors gracefully by providing fallback options
           options={options || []}
@@ -98,6 +99,7 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
           // Handle errors gracefully by providing fallback options
           options={options || []}
@@ -117,6 +119,7 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
         />
       );
@@ -134,6 +137,7 @@ const MultiSelectController: React.FC<MultiSelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
         />
       );

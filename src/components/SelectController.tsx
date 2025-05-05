@@ -1,4 +1,3 @@
-// src/components/SelectController.tsx
 import React from "react";
 import { ControllerRenderProps, UseFormReturn } from "react-hook-form";
 import { Controller } from "../types";
@@ -42,6 +41,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
     minSearchLength,
     className,
     type,
+    showError = false,
   } = controller;
 
   const error = form.formState.errors[name]?.message as string;
@@ -76,6 +76,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
           // Handle errors gracefully by providing fallback options
           options={options || []}
@@ -94,6 +95,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
           // Handle errors gracefully by providing fallback options
           options={options || []}
@@ -112,6 +114,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
         />
       );
@@ -128,6 +131,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           required={required}
           disabled={disabled}
           error={error}
+          showError={showError}
           className={className}
         />
       );

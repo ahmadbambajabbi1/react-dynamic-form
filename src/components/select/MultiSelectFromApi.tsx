@@ -1,14 +1,12 @@
-import React from "react";
-import { MultiSelectFromApiProps } from "./types";
+import React, { useRef, useEffect, useState } from "react";
 import { useMultiSelectFromApiController } from "./useMultiSelectFromApiController";
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { Spinner } from "../../icons/Spinner";
 import { CheckIcon } from "../../icons/CheckIcon";
+import { determineDropdownPosition } from "../../utils/dropdown";
 
-export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
-  props
-) => {
+export const MultiSelectFromApi = (props: any) => {
   const {
     label,
     placeholder = "Select options",
@@ -18,6 +16,7 @@ export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
     clearable = true,
     className = "",
     size = "md",
+    showError = true, // Add showError prop with default true
   } = props;
 
   const {
@@ -35,6 +34,23 @@ export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
     error: apiError,
     refresh,
   } = useMultiSelectFromApiController(props);
+
+  // Add ref and position state for dropdown positioning
+  const triggerRef = useRef(null);
+  const [position, setPosition] = useState("bottom");
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      setPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
+      );
+    }
+  }, [isOpen]);
 
   // Size classes
   const sizeClasses = {
@@ -55,9 +71,10 @@ export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
 
       <div className="relative">
         <div
+          ref={triggerRef}
           className={`
             flex items-center border rounded-md px-3 relative cursor-pointer
-            ${sizeClasses[size]}
+            ${(sizeClasses as any)[size] as any}
             ${error || apiError ? "border-red-500" : "border-gray-300"}
             ${isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""}
             ${
@@ -134,7 +151,8 @@ export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
           </div>
         </div>
 
-        {(error || apiError) && (
+        {/* Only show error if showError prop is true */}
+        {showError && (error || apiError) && (
           <p className="mt-1 text-sm text-red-500">
             {error || apiError?.message}
           </p>
@@ -145,11 +163,7 @@ export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
             ref={menuProps.ref}
             className={`
               absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${
-                menuProps.position === "top"
-                  ? "bottom-full mb-1"
-                  : "top-full mt-1"
-              }
+              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
             `}
           >
             {loading ? (
@@ -157,7 +171,7 @@ export const MultiSelectFromApi: React.FC<MultiSelectFromApiProps> = (
                 <Spinner />
                 <span className="ml-2">Loading options...</span>
               </div>
-            ) : apiError ? (
+            ) : apiError && !showError ? (
               <div className="p-3">
                 <p className="text-sm text-red-500 mb-2">
                   Failed to load options

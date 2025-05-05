@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { useMultiSelectController } from "./useMultiSelectController";
 import { SelectOption, MultiSelectProps } from "./types";
 import { cn } from "../../utils";
+import { determineDropdownPosition } from "../../utils/dropdown";
 
 // Import icons
 import { XIcon } from "../../icons/XIcon";
@@ -40,17 +41,12 @@ export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
   // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      // Calculate position based on available space
-      const rect = triggerRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const dropdownHeight = 250; // Approximate max height
-
       setPosition(
-        spaceBelow < dropdownHeight && spaceAbove > spaceBelow
-          ? "top"
-          : "bottom"
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
       );
     }
   }, [isOpen]);

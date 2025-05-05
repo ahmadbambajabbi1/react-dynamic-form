@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useSearchableMultiSelectFromApiController } from "./useSearchableMultiSelectFromApiController";
-import { SearchableMultiSelectFromApiProps } from "./types";
+import { determineDropdownPosition } from "../../utils/dropdown";
 
 // Import icons
 import { XIcon } from "../../icons/XIcon";
@@ -9,9 +9,7 @@ import { CheckIcon } from "../../icons/CheckIcon";
 import { Spinner } from "../../icons/Spinner";
 import { SearchIcon } from "../../icons/SearchIcon";
 
-export const SearchableMultiSelectFromApi: React.FC<
-  SearchableMultiSelectFromApiProps
-> = (props) => {
+export const SearchableMultiSelectFromApi = (props: any) => {
   const {
     label,
     placeholder = "Select options",
@@ -40,26 +38,22 @@ export const SearchableMultiSelectFromApi: React.FC<
     filteredOptions,
     loading,
     loadingResults,
+    error: apiError,
   } = useSearchableMultiSelectFromApiController(props);
 
-  const triggerRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+  const triggerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const [position, setPosition] = useState("bottom");
 
   // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      // Calculate position based on available space
-      const rect = triggerRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const dropdownHeight = 250; // Approximate max height
-
       setPosition(
-        spaceBelow < dropdownHeight && spaceAbove > spaceBelow
-          ? "top"
-          : "bottom"
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
       );
     }
   }, [isOpen]);
@@ -67,7 +61,7 @@ export const SearchableMultiSelectFromApi: React.FC<
   // Focus search input when dropdown is opened
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+      (searchInputRef.current as any)?.focus();
     }
   }, [isOpen]);
 
@@ -106,7 +100,7 @@ export const SearchableMultiSelectFromApi: React.FC<
       <div className="flex flex-wrap gap-1 flex-grow overflow-hidden">
         {selectedOptions.map((option) => (
           <div
-            key={option.value as string}
+            key={option.value.toString()}
             className="bg-blue-100 text-blue-800 rounded-md px-2 py-0.5 flex items-center gap-1 text-sm"
           >
             <span className="truncate">{option.label}</span>
@@ -143,8 +137,8 @@ export const SearchableMultiSelectFromApi: React.FC<
           ref={triggerRef}
           className={`
             flex items-center border rounded-md px-3 relative cursor-pointer
-            ${sizeClasses[size]}
-            ${error ? "border-red-500" : "border-gray-300"}
+            ${(sizeClasses as any)[size] as any}
+            ${error || apiError ? "border-red-500" : "border-gray-300"}
             ${isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""}
             ${
               disabled
@@ -191,8 +185,10 @@ export const SearchableMultiSelectFromApi: React.FC<
         </div>
 
         {/* Only show error if showError prop is true */}
-        {showError && error && (
-          <p className="mt-1 text-sm text-red-500">{error}</p>
+        {showError && (error || apiError) && (
+          <p className="mt-1 text-sm text-red-500">
+            {error || apiError?.message}
+          </p>
         )}
 
         {isOpen && !disabled && (
@@ -218,7 +214,7 @@ export const SearchableMultiSelectFromApi: React.FC<
               <div className="py-1">
                 {filteredOptions.map((option) => (
                   <div
-                    key={option.value as string}
+                    key={option.value.toString()}
                     className={`
                       flex items-center px-3 py-2 cursor-pointer
                       ${

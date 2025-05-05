@@ -179,14 +179,13 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                     ...controller,
                                     // Remove label to prevent duplication in child components
                                     label: undefined,
-                                    // Remove error display in child component
+                                    // Set showError to false explicitly to prevent double error display
                                     showError: false,
                                   }}
                                   field={field}
                                   form={form}
                                 />
                               );
-
                             // All multi-select types - passing modified controller to prevent duplicate labels
                             case "multi-select":
                             case "multi-select-from-api":
@@ -198,14 +197,13 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
                                     ...controller,
                                     // Remove label to prevent duplication in child components
                                     label: undefined,
-                                    // Remove error display in child component
+                                    // Set showError to false explicitly to prevent double error display
                                     showError: false,
                                   }}
                                   field={field}
                                   form={form}
                                 />
                               );
-
                             case "textarea":
                               return (
                                 <TextareaController

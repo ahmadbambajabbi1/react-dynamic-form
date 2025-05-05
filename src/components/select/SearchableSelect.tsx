@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { SearchableSelectProps } from "./types";
 import { useSearchableSelectController } from "./useSearchableSelectController";
+import { determineDropdownPosition } from "../../utils/dropdown";
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 
@@ -16,6 +17,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
     className = "",
     size = "md",
     noResultsMessage = "No results found",
+    showError = true,
   } = props;
 
   const {
@@ -29,6 +31,23 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
     filteredOptions,
     searchTerm,
   } = useSearchableSelectController(props);
+
+  // Add ref for trigger element and state for position
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+
+  // Update dropdown position when it's opened
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      setPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
+      );
+    }
+  }, [isOpen]);
 
   // Size classes
   const sizeClasses = {
@@ -49,6 +68,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
 
       <div className="relative">
         <div
+          ref={triggerRef}
           className={`
             flex items-center border rounded-md px-3 relative
             ${sizeClasses[size]}
@@ -93,18 +113,17 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
           </div>
         </div>
 
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {/* Only show error if showError prop is true */}
+        {showError && error && (
+          <p className="mt-1 text-sm text-red-500">{error}</p>
+        )}
 
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
             className={`
               absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${
-                menuProps.position === "top"
-                  ? "bottom-full mb-1"
-                  : "top-full mt-1"
-              }
+              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
             `}
           >
             {filteredOptions.length === 0 ? (
@@ -115,7 +134,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
               <ul className="py-1">
                 {filteredOptions.map((option) => (
                   <li
-                    key={option.value}
+                    key={option.value.toString()}
                     className={`
                       px-3 py-2 cursor-pointer text-sm hover:bg-gray-100
                       ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}
