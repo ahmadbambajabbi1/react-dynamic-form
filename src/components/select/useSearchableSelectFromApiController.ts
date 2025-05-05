@@ -32,14 +32,26 @@ export const useSearchableSelectFromApiController = (
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousSearchRef = useRef<string>("");
 
-  // Form context to watch dependent controllers
-  const formContext = useFormContext();
+  // Get form context safely with a try/catch
+  let formContext;
+  try {
+    formContext = useFormContext();
+  } catch (e) {
+    // Form context not available, this is fine for standalone usage
+    formContext = null;
+  }
 
-  // Watch for dependent controller value changes
-  const dependentValue =
-    optionsApiOptions?.dependingContrllerName && formContext
-      ? formContext.watch(optionsApiOptions.dependingContrllerName)
-      : undefined;
+  // Safely get the dependent value without useWatch
+  let dependentValue = undefined;
+  if (formContext && optionsApiOptions?.dependingContrllerName) {
+    try {
+      dependentValue = formContext.watch(
+        optionsApiOptions.dependingContrllerName
+      );
+    } catch (e) {
+      console.warn("Could not watch dependent field:", e);
+    }
+  }
 
   // Use the base API controller
   const baseApiSelect = useSelectFromApiController({
@@ -120,22 +132,26 @@ export const useSearchableSelectFromApiController = (
 
         setFilteredOptions(searchResults);
 
-        // If we have a formContext and a selected value
+        // If we have a formContext and a selected value - with safety checks
         if (formContext && name) {
-          const currentValue = formContext.getValues(name);
+          try {
+            const currentValue = formContext.getValues(name);
 
-          // Check if the current value is still valid in the new options
-          const isValueValid = searchResults.some(
-            (option: any) => option.value === currentValue
-          );
+            // Check if the current value is still valid in the new options
+            const isValueValid = searchResults.some(
+              (option: any) => option.value === currentValue
+            );
 
-          // If not valid and we have a value, reset it
-          if (
-            !isValueValid &&
-            currentValue !== undefined &&
-            currentValue !== null
-          ) {
-            formContext.setValue(name, null, { shouldValidate: true });
+            // If not valid and we have a value, reset it
+            if (
+              !isValueValid &&
+              currentValue !== undefined &&
+              currentValue !== null
+            ) {
+              formContext.setValue(name, null, { shouldValidate: true });
+            }
+          } catch (e) {
+            console.warn("Error validating current value:", e);
           }
         }
       } catch (err) {

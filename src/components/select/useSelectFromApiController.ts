@@ -6,7 +6,7 @@ import {
 } from "./types";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useSelectController } from "./useSelectController";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import Axios from "../../utils/axiosConfig";
 
 export const useSelectFromApiController = (
@@ -19,7 +19,6 @@ export const useSelectFromApiController = (
     defaultValue,
     optionsApiOptions,
     name,
-    controller,
     ...selectProps
   } = props;
 
@@ -28,20 +27,26 @@ export const useSelectFromApiController = (
   const [error, setError] = useState<Error | null>(null);
   const hasFetchedRef = useRef(false);
 
-  // Get form context
-  const formContext = useFormContext();
+  // Get form context safely with a try/catch
+  let formContext;
+  try {
+    formContext = useFormContext();
+  } catch (e) {
+    // Form context not available, this is fine for standalone usage
+    formContext = null;
+  }
 
-  // Use useWatch to observe the dependent field
-  // This will properly handle subscriptions and cleanup
-  const dependentValue = optionsApiOptions?.dependingContrllerName
-    ? useWatch({
-        control: controller,
-        name: optionsApiOptions.dependingContrllerName,
-        defaultValue: undefined,
-      })
-    : undefined;
-
-  console.log({ controller });
+  // Safely get the dependent value without useWatch
+  let dependentValue = undefined;
+  if (formContext && optionsApiOptions?.dependingContrllerName) {
+    try {
+      dependentValue = formContext.watch(
+        optionsApiOptions.dependingContrllerName
+      );
+    } catch (e) {
+      console.warn("Could not watch dependent field:", e);
+    }
+  }
 
   // Create base select controller
   const baseSelect = useSelectController({
@@ -123,19 +128,23 @@ export const useSelectFromApiController = (
         setOptions(transformedOptions);
         hasFetchedRef.current = true;
 
-        // Validate current value
+        // Validate current value safely
         if (formContext && name) {
-          const currentValue = formContext.getValues(name);
-          const isValueValid = transformedOptions.some(
-            (option: any) => option.value === currentValue
-          );
+          try {
+            const currentValue = formContext.getValues(name);
+            const isValueValid = transformedOptions.some(
+              (option: any) => option.value === currentValue
+            );
 
-          if (
-            !isValueValid &&
-            currentValue !== undefined &&
-            currentValue !== null
-          ) {
-            formContext.setValue(name, null, { shouldValidate: true });
+            if (
+              !isValueValid &&
+              currentValue !== undefined &&
+              currentValue !== null
+            ) {
+              formContext.setValue(name, null, { shouldValidate: true });
+            }
+          } catch (e) {
+            console.warn("Error validating current value:", e);
           }
         }
       } catch (err) {
@@ -166,7 +175,7 @@ export const useSelectFromApiController = (
   const refresh = useCallback(() => {
     hasFetchedRef.current = false;
     return fetchOptions(true);
-  }, [fetchOptions]);
+  }, []);
 
   // Initial fetch
   useEffect(() => {
@@ -179,7 +188,7 @@ export const useSelectFromApiController = (
       hasFetchedRef.current = false;
       fetchOptions(true);
     }
-  }, [dependentValue, optionsApiOptions?.dependingContrllerName, fetchOptions]);
+  }, [dependentValue, optionsApiOptions?.dependingContrllerName]);
 
   return {
     ...baseSelect,

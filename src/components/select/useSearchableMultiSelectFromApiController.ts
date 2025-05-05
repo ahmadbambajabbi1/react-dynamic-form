@@ -32,14 +32,26 @@ export const useSearchableMultiSelectFromApiController = (
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousSearchRef = useRef<string>("");
 
-  // Form context to watch dependent controllers
-  const formContext = useFormContext();
+  // Get form context safely with a try/catch
+  let formContext;
+  try {
+    formContext = useFormContext();
+  } catch (e) {
+    // Form context not available, this is fine for standalone usage
+    formContext = null;
+  }
 
-  // Watch for dependent controller value changes
-  const dependentValue =
-    optionsApiOptions?.dependingContrllerName && formContext
-      ? formContext.watch(optionsApiOptions.dependingContrllerName)
-      : undefined;
+  // Safely get the dependent value
+  let dependentValue = undefined;
+  if (formContext && optionsApiOptions?.dependingContrllerName) {
+    try {
+      dependentValue = formContext.watch(
+        optionsApiOptions.dependingContrllerName
+      );
+    } catch (e) {
+      console.warn("Could not watch dependent field:", e);
+    }
+  }
 
   // Use the base API controller
   const baseApiMultiSelect = useMultiSelectFromApiController({
@@ -120,20 +132,26 @@ export const useSearchableMultiSelectFromApiController = (
 
         setFilteredOptions(searchResults);
 
-        // If we have a formContext and selected values
+        // If we have a formContext and selected values - with safety checks
         if (formContext && name) {
-          const currentValues = formContext.getValues(name);
+          try {
+            const currentValues = formContext.getValues(name);
 
-          if (Array.isArray(currentValues) && currentValues.length > 0) {
-            // Filter out values that are no longer valid
-            const validValues = currentValues.filter((value) =>
-              searchResults.some((option: any) => option.value === value)
-            );
+            if (Array.isArray(currentValues) && currentValues.length > 0) {
+              // Filter out values that are no longer valid
+              const validValues = currentValues.filter((value) =>
+                searchResults.some((option: any) => option.value === value)
+              );
 
-            // If any values were removed, update the form
-            if (validValues.length !== currentValues.length) {
-              formContext.setValue(name, validValues, { shouldValidate: true });
+              // If any values were removed, update the form
+              if (validValues.length !== currentValues.length) {
+                formContext.setValue(name, validValues, {
+                  shouldValidate: true,
+                });
+              }
             }
+          } catch (e) {
+            console.warn("Error validating current values:", e);
           }
         }
       } catch (err) {
@@ -234,7 +252,7 @@ export const useSearchableMultiSelectFromApiController = (
   return {
     ...baseApiMultiSelect,
     searchTerm,
-    setSearchTerm: handleSearchChange, // Use the debounced handler
+    setSearchTerm: handleSearchChange,
     filteredOptions,
     loadingResults,
     inputProps,

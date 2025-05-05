@@ -26,14 +26,25 @@ export const useMultiSelectFromApiController = (
   const [error, setError] = useState<Error | null>(null);
   const hasFetchedRef = useRef(false);
 
-  // Form context to watch dependent controllers
-  const formContext = useFormContext();
+  // Form context to watch dependent controllers - with safe access
+  let formContext;
+  try {
+    formContext = useFormContext();
+  } catch (e) {
+    formContext = null;
+  }
 
-  // Watch for dependent controller value changes
-  const dependentValue =
-    optionsApiOptions?.dependingContrllerName && formContext
-      ? formContext.watch(optionsApiOptions.dependingContrllerName)
-      : undefined;
+  // Safely get dependent value
+  let dependentValue = undefined;
+  if (formContext && optionsApiOptions?.dependingContrllerName) {
+    try {
+      dependentValue = formContext.watch(
+        optionsApiOptions.dependingContrllerName
+      );
+    } catch (e) {
+      console.warn("Could not watch dependent field:", e);
+    }
+  }
 
   // Create a base controller with empty options (will be filled after API call)
   const baseMultiSelect = useMultiSelectController({
@@ -102,20 +113,26 @@ export const useMultiSelectFromApiController = (
         setOptions(transformedOptions);
         hasFetchedRef.current = true;
 
-        // If we have a formContext and selected values
+        // If we have a formContext and selected values - safely
         if (formContext && name) {
-          const currentValues = formContext.getValues(name);
+          try {
+            const currentValues = formContext.getValues(name);
 
-          if (Array.isArray(currentValues) && currentValues.length > 0) {
-            // Filter out values that are no longer valid
-            const validValues = currentValues.filter((value) =>
-              transformedOptions.some((option: any) => option.value === value)
-            );
+            if (Array.isArray(currentValues) && currentValues.length > 0) {
+              // Filter out values that are no longer valid
+              const validValues = currentValues.filter((value) =>
+                transformedOptions.some((option: any) => option.value === value)
+              );
 
-            // If any values were removed, update the form
-            if (validValues.length !== currentValues.length) {
-              formContext.setValue(name, validValues, { shouldValidate: true });
+              // If any values were removed, update the form
+              if (validValues.length !== currentValues.length) {
+                formContext.setValue(name, validValues, {
+                  shouldValidate: true,
+                });
+              }
             }
+          } catch (e) {
+            console.warn("Error validating current values:", e);
           }
         }
       } catch (err) {
