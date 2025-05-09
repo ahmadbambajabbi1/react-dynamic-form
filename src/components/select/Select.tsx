@@ -3,7 +3,6 @@ import { useSelectController } from "./useSelectController";
 import { SelectProps } from "./types";
 import { determineDropdownPosition } from "../../utils/dropdown";
 
-// Import icons
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { CheckIcon } from "../../icons/CheckIcon";
@@ -33,43 +32,29 @@ export const Select: React.FC<SelectProps> = (props) => {
   } = useSelectController(props);
 
   const triggerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<"top" | "bottom">("bottom");
-  const [menuPosition, setMenuPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    position: "top" | "bottom";
+    style: React.CSSProperties;
+  }>({ position: "bottom", style: {} });
 
-  // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-
-      setPosition(
+      setDropdownPosition(
         determineDropdownPosition(triggerRef.current, {
           dropdownHeight: 250,
           margin: 8,
           preferredPosition: "bottom",
         })
       );
-
-      // Calculate the menu position
-      setMenuPosition({
-        top: position === "bottom" ? rect.bottom : rect.top - 250, // Approximate dropdown height
-        left: rect.left,
-        width: rect.width,
-      });
     }
-  }, [isOpen, position]);
+  }, [isOpen]);
 
-  // Size variants
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
     lg: "h-12 text-lg",
   };
 
-  // Handle clicks outside to close menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -91,7 +76,6 @@ export const Select: React.FC<SelectProps> = (props) => {
 
   return (
     <div className={`select-container w-full ${className}`}>
-      {/* Only render the label if it's provided */}
       {label && (
         <label className="block text-sm font-medium mb-1">
           {label}
@@ -143,57 +127,49 @@ export const Select: React.FC<SelectProps> = (props) => {
             />
           </div>
 
-          {/* Hidden input for form control */}
           <input type="text" className="sr-only" {...inputProps} />
         </div>
 
-        {/* Only show error if showError prop is true */}
         {showError && error && (
           <p className="mt-1 text-sm text-red-500">{error}</p>
         )}
-      </div>
 
-      {isOpen && !disabled && (
-        <div
-          ref={menuProps.ref}
-          style={{
-            position: "fixed",
-            top: `${menuPosition.top}px`,
-            left: `${menuPosition.left}px`,
-            width: `${menuPosition.width}px`,
-            zIndex: 9999,
-          }}
-          className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
-        >
-          {options.length === 0 ? (
-            <div className="p-2 text-gray-500 text-center">
-              No options available
-            </div>
-          ) : (
-            <div className="py-1">
-              {options.map((option) => (
-                <div
-                  key={option.value as string}
-                  className={`
-                    flex items-center px-3 py-2 cursor-pointer
-                    ${
-                      selectedOption?.value === option.value
-                        ? "bg-blue-50 text-blue-700"
-                        : "hover:bg-gray-50"
-                    }
-                  `}
-                  onClick={() => selectOption(option)}
-                >
-                  <span>{option.label}</span>
-                  {selectedOption?.value === option.value && (
-                    <CheckIcon className="h-4 w-4 ml-auto text-blue-600" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+        {isOpen && !disabled && (
+          <div
+            ref={menuProps.ref}
+            style={dropdownPosition.style}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
+          >
+            {options.length === 0 ? (
+              <div className="p-2 text-gray-500 text-center">
+                No options available
+              </div>
+            ) : (
+              <div className="py-1">
+                {options.map((option) => (
+                  <div
+                    key={option.value as string}
+                    className={`
+                      flex items-center px-3 py-2 cursor-pointer
+                      ${
+                        selectedOption?.value === option.value
+                          ? "bg-blue-50 text-blue-700"
+                          : "hover:bg-gray-50"
+                      }
+                    `}
+                    onClick={() => selectOption(option)}
+                  >
+                    <span>{option.label}</span>
+                    {selectedOption?.value === option.value && (
+                      <CheckIcon className="h-4 w-4 ml-auto text-blue-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

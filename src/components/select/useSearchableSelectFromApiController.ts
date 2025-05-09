@@ -34,10 +34,13 @@ export const useSearchableSelectFromApiController = (
   const prevDependentValueRef = useRef<any>(undefined);
   const isMountedRef = useRef(true);
   const fetchInProgressRef = useRef(false);
+  const hasFetchErrorRef = useRef(false);
+
   let formContext = null;
   try {
     formContext = useFormContext();
   } catch (e) {}
+
   const dependentValue = useMemo(() => {
     if (!formContext || !optionsApiOptions?.dependingContrllerName) {
       return undefined;
@@ -50,7 +53,6 @@ export const useSearchableSelectFromApiController = (
   }, [formContext, optionsApiOptions?.dependingContrllerName]);
 
   const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
-
   const memoizedDependentValue = useMemo(
     () => dependentValue,
     [dependentValue]
@@ -65,6 +67,7 @@ export const useSearchableSelectFromApiController = (
   useEffect(() => {
     apiUrlRef.current = apiUrl || (optionsApiOptions?.api as string);
   }, [apiUrl]);
+
   const baseApiSelect = useSelectFromApiController({
     apiUrl,
     params: memoizedParams,
@@ -153,8 +156,8 @@ export const useSearchableSelectFromApiController = (
 
         let searchResults;
         if (typeof transformResponse === "function") {
-          searchResults = transformResponse(response.data.data);
-        } else if (Array.isArray(response.data.data)) {
+          searchResults = transformResponse(response.data?.data || []);
+        } else if (Array.isArray(response.data?.data)) {
           searchResults = response.data.data;
         } else {
           searchResults = [];
@@ -163,6 +166,7 @@ export const useSearchableSelectFromApiController = (
         if (isMountedRef.current) {
           setFilteredOptions(searchResults);
           prevDependentValueRef.current = memoizedDependentValue;
+          hasFetchErrorRef.current = false;
         }
 
         if (formContext && name) {
@@ -187,11 +191,16 @@ export const useSearchableSelectFromApiController = (
         if (!isMountedRef.current) return;
 
         if (err.name !== "AbortError") {
-          setFilteredOptions(
-            baseApiSelect.options.filter((option) =>
-              option.label.toLowerCase().includes(term.toLowerCase())
-            )
-          );
+          hasFetchErrorRef.current = true;
+
+          // Use local filtering instead of forcing refresh
+          if (baseApiSelect.options.length > 0) {
+            setFilteredOptions(
+              baseApiSelect.options.filter((option) =>
+                option.label.toLowerCase().includes(term.toLowerCase())
+              )
+            );
+          }
         }
       } finally {
         if (isMountedRef.current) {

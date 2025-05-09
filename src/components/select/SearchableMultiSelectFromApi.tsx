@@ -42,43 +42,29 @@ export const SearchableMultiSelectFromApi = (props: any) => {
 
   const triggerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [position, setPosition] = useState<"top" | "bottom">("bottom");
-  const [menuPosition, setMenuPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    position: "top" | "bottom";
+    style: React.CSSProperties;
+  }>({ position: "bottom", style: {} });
 
-  // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-
-      const pos = determineDropdownPosition(triggerRef.current, {
-        dropdownHeight: 250,
-        margin: 8,
-        preferredPosition: "bottom",
-      });
-
-      setPosition(pos);
-
-      // Calculate the menu position
-      setMenuPosition({
-        top: pos === "bottom" ? rect.bottom : rect.top - 250,
-        left: rect.left,
-        width: rect.width,
-      });
+      setDropdownPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
+      );
     }
   }, [isOpen]);
 
-  // Focus search input when dropdown is opened
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       (searchInputRef.current as any)?.focus();
     }
   }, [isOpen]);
 
-  // Handle clicks outside to close menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -98,14 +84,12 @@ export const SearchableMultiSelectFromApi = (props: any) => {
     };
   }, [isOpen, toggleMenu]);
 
-  // Size variants
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
     lg: "h-12 text-lg",
   };
 
-  // Create a container for selected options
   const SelectedItemsContainer = () => {
     if (!isOpen && selectedOptions?.length === 0) {
       return (
@@ -224,14 +208,8 @@ export const SearchableMultiSelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            style={{
-              position: "fixed",
-              top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`,
-              width: `${menuPosition.width}px`,
-              zIndex: 9999,
-            }}
-            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
+            style={dropdownPosition.style}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto z-50"
           >
             {loadingResults ? (
               <div className="p-4 text-center text-gray-500">

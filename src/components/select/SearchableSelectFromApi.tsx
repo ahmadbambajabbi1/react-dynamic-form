@@ -28,8 +28,8 @@ export const SearchableSelectFromApi = (props: any) => {
     clearSelection,
     menuProps,
     inputProps,
-    filteredOptions = [], // Default to empty array
-    searchTerm = "", // Default to empty string
+    filteredOptions = [],
+    searchTerm = "",
     loading,
     loadingResults,
     error: apiError,
@@ -38,11 +38,14 @@ export const SearchableSelectFromApi = (props: any) => {
 
   const triggerRef = useRef(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [position, setPosition] = useState("bottom");
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    position: "top" | "bottom";
+    style: React.CSSProperties;
+  }>({ position: "bottom", style: {} });
 
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setPosition(
+      setDropdownPosition(
         determineDropdownPosition(triggerRef.current, {
           dropdownHeight: 250,
           margin: 8,
@@ -52,22 +55,18 @@ export const SearchableSelectFromApi = (props: any) => {
     }
   }, [isOpen]);
 
-  // Focus search input when dropdown is opened
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isOpen]);
 
-  // Extract ref from inputProps to avoid duplicate ref error
   const { ref: _, ...otherInputProps } = inputProps || {};
 
-  // Ensure filteredOptions is always an array
   const safeFilteredOptions = Array.isArray(filteredOptions)
     ? filteredOptions
     : [];
 
-  // Size classes
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
@@ -97,7 +96,7 @@ export const SearchableSelectFromApi = (props: any) => {
                 : "bg-white hover:border-gray-400"
             }
           `}
-          onClick={() => !disabled && toggleMenu()} // Fixed: Now toggles both open and close
+          onClick={() => !disabled && toggleMenu()}
         >
           <input
             ref={searchInputRef}
@@ -146,10 +145,8 @@ export const SearchableSelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            className={`
-              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
-            `}
+            style={dropdownPosition.style}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {loading ? (
               <div className="p-3 text-sm text-gray-500 text-center flex items-center justify-center">
@@ -161,7 +158,7 @@ export const SearchableSelectFromApi = (props: any) => {
                 <Spinner />
                 <span className="ml-2">Searching...</span>
               </div>
-            ) : apiError && !showError ? (
+            ) : apiError ? (
               <div className="p-3">
                 <p className="text-sm text-red-500 mb-2">
                   Failed to load options

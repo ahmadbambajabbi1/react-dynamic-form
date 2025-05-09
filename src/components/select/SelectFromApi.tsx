@@ -26,42 +26,30 @@ export const SelectFromApi = (props: any) => {
     clearSelection,
     menuProps,
     inputProps,
-    options = [], // Default to empty array
+    options = [],
     loading,
     error: apiError,
     refresh,
   } = useSelectFromApiController(props);
 
   const triggerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<"top" | "bottom">("bottom");
-  const [dropdownStyle, setDropdownStyle] = useState({});
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    position: "top" | "bottom";
+    style: React.CSSProperties;
+  }>({ position: "bottom", style: {} });
 
-  // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-
-      const pos = determineDropdownPosition(triggerRef.current, {
-        dropdownHeight: 250,
-        margin: 4, // Reduced margin for closer positioning
-        preferredPosition: "bottom",
-      });
-
-      setPosition(pos);
-
-      // Calculate precise positioning with consistent spacing
-      setDropdownStyle({
-        position: "absolute",
-        width: "100%",
-        zIndex: 50,
-        ...(pos === "bottom"
-          ? { top: "100%", marginTop: "1px" }
-          : { bottom: "100%", marginBottom: "1px" }),
-      });
+      setDropdownPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
+      );
     }
   }, [isOpen]);
 
-  // Size classes
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
@@ -93,7 +81,7 @@ export const SelectFromApi = (props: any) => {
           `}
           onClick={(e) => {
             if (!disabled) {
-              e.stopPropagation(); // Prevent event bubbling
+              e.stopPropagation();
               toggleMenu();
             }
           }}
@@ -104,7 +92,7 @@ export const SelectFromApi = (props: any) => {
             placeholder={placeholder}
             readOnly
             disabled={disabled}
-            onClick={(e) => e.stopPropagation()} // Prevent input click from closing dropdown
+            onClick={(e) => e.stopPropagation()}
           />
 
           <div className="flex items-center ml-2">
@@ -136,7 +124,6 @@ export const SelectFromApi = (props: any) => {
           </div>
         </div>
 
-        {/* Only show error if showError prop is true */}
         {showError && (error || apiError) && (
           <p className="mt-1 text-sm text-red-500">
             {error || apiError?.message}
@@ -146,19 +133,16 @@ export const SelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            style={dropdownStyle}
-            className={`
-              bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "rounded-b-md" : "rounded-t-md"}
-            `}
-            onClick={(e) => e.stopPropagation()} // Prevent menu clicks from closing dropdown
+            style={dropdownPosition.style}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto z-50"
+            onClick={(e) => e.stopPropagation()}
           >
             {loading ? (
               <div className="p-3 text-sm text-gray-500 text-center flex items-center justify-center">
                 <Spinner />
                 <span className="ml-2">Loading options...</span>
               </div>
-            ) : apiError && !showError ? (
+            ) : apiError ? (
               <div className="p-3">
                 <p className="text-sm text-red-500 mb-2">
                   Failed to load options

@@ -5,8 +5,8 @@ export const determineDropdownPosition = (
     margin?: number;
     preferredPosition?: "top" | "bottom";
   }
-): "top" | "bottom" => {
-  if (!triggerElement) return "bottom";
+): { position: "top" | "bottom"; style: React.CSSProperties } => {
+  if (!triggerElement) return { position: "bottom", style: {} };
 
   const {
     dropdownHeight = 250,
@@ -14,76 +14,41 @@ export const determineDropdownPosition = (
     preferredPosition = "bottom",
   } = options || {};
 
-  // Get bounds of the trigger element
   const triggerRect = triggerElement.getBoundingClientRect();
   const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
 
-  // Find modal or dialog container
-  const modalContainer = findModalContainer(triggerElement);
-
-  if (modalContainer) {
-    const modalRect = modalContainer.getBoundingClientRect();
-
-    // Calculate available space within the modal
-    const spaceBelow = modalRect.bottom - triggerRect.bottom - margin;
-    const spaceAbove = triggerRect.top - modalRect.top - margin;
-
-    // If there's not enough space below but more space above
-    if (spaceBelow < dropdownHeight && spaceBelow < spaceAbove) {
-      return "top";
-    }
-
-    // If there's not enough space above but more space below
-    if (spaceAbove < dropdownHeight && spaceAbove < spaceBelow) {
-      return "bottom";
-    }
-
-    // If both spaces are sufficient, use preferred position
-    return preferredPosition;
-  }
-
-  // Fallback to viewport-based positioning
   const spaceBelow = viewportHeight - triggerRect.bottom - margin;
   const spaceAbove = triggerRect.top - margin;
 
+  let position: "top" | "bottom";
+
   if (preferredPosition === "bottom" && spaceBelow >= dropdownHeight) {
-    return "bottom";
+    position = "bottom";
+  } else if (preferredPosition === "top" && spaceAbove >= dropdownHeight) {
+    position = "top";
+  } else {
+    position = spaceBelow >= spaceAbove ? "bottom" : "top";
   }
 
-  if (preferredPosition === "top" && spaceAbove >= dropdownHeight) {
-    return "top";
+  const style: React.CSSProperties = {
+    position: "fixed",
+    width: triggerRect.width,
+    left: triggerRect.left,
+    maxHeight: dropdownHeight,
+    overflowY: "auto",
+    zIndex: 9999,
+  };
+
+  if (position === "bottom") {
+    style.top = triggerRect.bottom + margin;
+  } else {
+    style.bottom = viewportHeight - triggerRect.top + margin;
   }
 
-  return spaceBelow >= spaceAbove ? "bottom" : "top";
+  return { position, style };
 };
 
-// Find the closest modal or dialog container
-const findModalContainer = (element: HTMLElement): HTMLElement | null => {
-  let current = element.parentElement;
-
-  while (current) {
-    const style = window.getComputedStyle(current);
-    const role = current.getAttribute("role");
-
-    // Look for common modal indicators
-    if (
-      role === "dialog" ||
-      role === "modal" ||
-      current.classList.contains("modal") ||
-      current.classList.contains("dialog") ||
-      style.position === "fixed" ||
-      (style.zIndex !== "auto" && parseInt(style.zIndex) > 0)
-    ) {
-      return current;
-    }
-
-    current = current.parentElement;
-  }
-
-  return null;
-};
-
-// Also look for scrollable elements that might affect positioning
 const findScrollableParent = (
   element: HTMLElement | null
 ): HTMLElement | null => {
@@ -106,7 +71,7 @@ export const useDropdownPosition = () => {
       margin?: number;
       preferredPosition?: "top" | "bottom";
     }
-  ): "top" | "bottom" => {
+  ): { position: "top" | "bottom"; style: React.CSSProperties } => {
     return determineDropdownPosition(element, options);
   };
 

@@ -36,36 +36,23 @@ export const MultiSelectFromApi = (props: any) => {
   } = useMultiSelectFromApiController(props);
 
   const triggerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<"top" | "bottom">("bottom");
-  const [menuPosition, setMenuPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    position: "top" | "bottom";
+    style: React.CSSProperties;
+  }>({ position: "bottom", style: {} });
 
-  // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-
-      const pos = determineDropdownPosition(triggerRef.current, {
-        dropdownHeight: 250,
-        margin: 8,
-        preferredPosition: "bottom",
-      });
-
-      setPosition(pos);
-
-      // Calculate the menu position
-      setMenuPosition({
-        top: pos === "bottom" ? rect.bottom : rect.top - 250,
-        left: rect.left,
-        width: rect.width,
-      });
+      setDropdownPosition(
+        determineDropdownPosition(triggerRef.current, {
+          dropdownHeight: 250,
+          margin: 8,
+          preferredPosition: "bottom",
+        })
+      );
     }
   }, [isOpen]);
 
-  // Handle clicks outside to close menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -85,7 +72,6 @@ export const MultiSelectFromApi = (props: any) => {
     };
   }, [isOpen, toggleMenu]);
 
-  // Size classes
   const sizeClasses = {
     sm: "h-8 text-sm",
     md: "h-10 text-base",
@@ -192,21 +178,15 @@ export const MultiSelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            style={{
-              position: "fixed",
-              top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`,
-              width: `${menuPosition.width}px`,
-              zIndex: 9999,
-            }}
-            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
+            style={dropdownPosition.style}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto z-50"
           >
             {loading ? (
               <div className="p-3 text-sm text-gray-500 text-center flex items-center justify-center">
                 <Spinner />
                 <span className="ml-2">Loading options...</span>
               </div>
-            ) : apiError && !showError ? (
+            ) : apiError ? (
               <div className="p-3">
                 <p className="text-sm text-red-500 mb-2">
                   Failed to load options
