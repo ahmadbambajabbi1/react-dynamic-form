@@ -26,7 +26,7 @@ export const SelectFromApi = (props: any) => {
     clearSelection,
     menuProps,
     inputProps,
-    options,
+    options = [], // Default to empty array
     loading,
     error: apiError,
     refresh,
@@ -34,11 +34,7 @@ export const SelectFromApi = (props: any) => {
 
   const triggerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<"top" | "bottom">("bottom");
-  const [menuPosition, setMenuPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
+  const [dropdownStyle, setDropdownStyle] = useState({});
 
   // Update dropdown position when it's opened
   useEffect(() => {
@@ -47,40 +43,23 @@ export const SelectFromApi = (props: any) => {
 
       const pos = determineDropdownPosition(triggerRef.current, {
         dropdownHeight: 250,
-        margin: 8,
+        margin: 4, // Reduced margin for closer positioning
         preferredPosition: "bottom",
       });
 
       setPosition(pos);
 
-      // Calculate the menu position
-      setMenuPosition({
-        top: pos === "bottom" ? rect.bottom : rect.top - 250,
-        left: rect.left,
-        width: rect.width,
+      // Calculate precise positioning with consistent spacing
+      setDropdownStyle({
+        position: "absolute",
+        width: "100%",
+        zIndex: 50,
+        ...(pos === "bottom"
+          ? { top: "100%", marginTop: "1px" }
+          : { bottom: "100%", marginBottom: "1px" }),
       });
     }
   }, [isOpen]);
-
-  // Handle clicks outside to close menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isOpen &&
-        triggerRef.current &&
-        !triggerRef.current.contains(event.target as Node) &&
-        menuProps.ref.current &&
-        !menuProps.ref.current.contains(event.target as Node)
-      ) {
-        toggleMenu();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, toggleMenu]);
 
   // Size classes
   const sizeClasses = {
@@ -112,7 +91,12 @@ export const SelectFromApi = (props: any) => {
                 : "bg-white hover:border-gray-400"
             }
           `}
-          onClick={() => !disabled && toggleMenu()}
+          onClick={(e) => {
+            if (!disabled) {
+              e.stopPropagation(); // Prevent event bubbling
+              toggleMenu();
+            }
+          }}
         >
           <input
             {...inputProps}
@@ -120,6 +104,7 @@ export const SelectFromApi = (props: any) => {
             placeholder={placeholder}
             readOnly
             disabled={disabled}
+            onClick={(e) => e.stopPropagation()} // Prevent input click from closing dropdown
           />
 
           <div className="flex items-center ml-2">
@@ -161,14 +146,12 @@ export const SelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            style={{
-              position: "fixed",
-              top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`,
-              width: `${menuPosition.width}px`,
-              zIndex: 9999,
-            }}
-            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
+            style={dropdownStyle}
+            className={`
+              bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
+              ${position === "top" ? "rounded-b-md" : "rounded-t-md"}
+            `}
+            onClick={(e) => e.stopPropagation()} // Prevent menu clicks from closing dropdown
           >
             {loading ? (
               <div className="p-3 text-sm text-gray-500 text-center flex items-center justify-center">
@@ -208,7 +191,12 @@ export const SelectFromApi = (props: any) => {
                           : "text-gray-700"
                       }
                     `}
-                    onClick={() => !option.disabled && selectOption(option)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!option.disabled) {
+                        selectOption(option);
+                      }
+                    }}
                   >
                     <div className="flex items-center">
                       {option.icon && (

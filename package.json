@@ -1,6 +1,6 @@
 {
   "name": "zeed-dynamic-form-builder",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "type": "module",
   "description": "A dynamic form builder for React applications with various input types and validation",
   "main": "dist/index.js",

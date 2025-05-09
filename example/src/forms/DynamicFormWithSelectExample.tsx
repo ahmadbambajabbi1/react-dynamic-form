@@ -234,17 +234,7 @@ const DynamicFormExample: React.FC = () => {
       searchParam: "query",
       minSearchLength: 2,
       // Mock data for demo
-      options: [
-        { value: "dev", label: "Software Developer" },
-        { value: "sre", label: "Site Reliability Engineer" },
-        { value: "pm", label: "Product Manager" },
-        { value: "ux", label: "UX Designer" },
-        { value: "ui", label: "UI Designer" },
-        { value: "qa", label: "Quality Assurance" },
-        { value: "data", label: "Data Scientist" },
-        { value: "devops", label: "DevOps Engineer" },
-        { value: "mgr", label: "Engineering Manager" },
-      ],
+      // options: [],
     },
 
     // API-based Multi-Select

@@ -28,8 +28,8 @@ export const SearchableSelectFromApi = (props: any) => {
     clearSelection,
     menuProps,
     inputProps,
-    filteredOptions = [], // Add default empty array here
-    searchTerm = "", // Add default empty string here
+    filteredOptions = [], // Default to empty array
+    searchTerm = "", // Default to empty string
     loading,
     loadingResults,
     error: apiError,
@@ -60,7 +60,7 @@ export const SearchableSelectFromApi = (props: any) => {
   }, [isOpen]);
 
   // Extract ref from inputProps to avoid duplicate ref error
-  const { ref: _, ...otherInputProps } = inputProps || {}; // Add default empty object
+  const { ref: _, ...otherInputProps } = inputProps || {};
 
   // Ensure filteredOptions is always an array
   const safeFilteredOptions = Array.isArray(filteredOptions)
@@ -97,7 +97,7 @@ export const SearchableSelectFromApi = (props: any) => {
                 : "bg-white hover:border-gray-400"
             }
           `}
-          onClick={() => !disabled && !isOpen && toggleMenu()}
+          onClick={() => !disabled && toggleMenu()} // Fixed: Now toggles both open and close
         >
           <input
             ref={searchInputRef}
@@ -176,19 +176,16 @@ export const SearchableSelectFromApi = (props: any) => {
                   Try again
                 </button>
               </div>
-            ) : safeFilteredOptions.length === 0 ? ( // Use safeFilteredOptions here
+            ) : safeFilteredOptions.length === 0 ? (
               <div className="p-3 text-sm text-gray-500 text-center">
                 {searchTerm ? noResultsMessage : "No options available"}
               </div>
             ) : (
               <ul className="py-1">
-                {safeFilteredOptions.map(
-                  (
-                    option // Use safeFilteredOptions here
-                  ) => (
-                    <li
-                      key={option.value}
-                      className={`
+                {safeFilteredOptions.map((option) => (
+                  <li
+                    key={option.value}
+                    className={`
                       px-3 py-2 cursor-pointer text-sm hover:bg-gray-100
                       ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}
                       ${
@@ -197,17 +194,16 @@ export const SearchableSelectFromApi = (props: any) => {
                           : "text-gray-700"
                       }
                     `}
-                      onClick={() => !option.disabled && selectOption(option)}
-                    >
-                      <div className="flex items-center">
-                        {option.icon && (
-                          <span className="mr-2">{option.icon}</span>
-                        )}
-                        {option.label}
-                      </div>
-                    </li>
-                  )
-                )}
+                    onClick={() => !option.disabled && selectOption(option)}
+                  >
+                    <div className="flex items-center">
+                      {option.icon && (
+                        <span className="mr-2">{option.icon}</span>
+                      )}
+                      {option.label}
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
           </div>
