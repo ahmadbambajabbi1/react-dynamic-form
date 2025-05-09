@@ -216,7 +216,6 @@ export const useSearchableSelectFromApiController = (
       memoizedDependentValue,
       optionsApiOptions,
       name,
-      transformResponse,
     ]
   );
 
@@ -241,7 +240,7 @@ export const useSearchableSelectFromApiController = (
         searchOptions(term);
       }, debounceMs);
     },
-    [searchOptions, minSearchLength, debounceMs, baseApiSelect.options]
+    [minSearchLength, debounceMs, baseApiSelect.options]
   );
 
   useEffect(() => {
@@ -279,7 +278,7 @@ export const useSearchableSelectFromApiController = (
         searchOptions(searchTerm);
       }, 100);
     }
-  }, [memoizedDependentValue, searchTerm, minSearchLength, searchOptions]);
+  }, [memoizedDependentValue, searchTerm, minSearchLength]);
 
   const inputProps = useMemo(
     () => ({
@@ -302,10 +301,8 @@ export const useSearchableSelectFromApiController = (
       baseApiSelect.isOpen,
       baseApiSelect.selectedOption,
       searchTerm,
-      handleSearchChange,
       props.searchPlaceholder,
       props.placeholder,
-      baseApiSelect.openMenu,
     ]
   );
 

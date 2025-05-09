@@ -14,15 +14,17 @@ export const determineDropdownPosition = (
     preferredPosition = "bottom",
   } = options || {};
 
+  // Get dimensions
   const triggerRect = triggerElement.getBoundingClientRect();
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
 
+  // Calculate available space
   const spaceBelow = viewportHeight - triggerRect.bottom - margin;
   const spaceAbove = triggerRect.top - margin;
 
+  // Determine position based on available space
   let position: "top" | "bottom";
-
   if (preferredPosition === "bottom" && spaceBelow >= dropdownHeight) {
     position = "bottom";
   } else if (preferredPosition === "top" && spaceAbove >= dropdownHeight) {
@@ -31,15 +33,24 @@ export const determineDropdownPosition = (
     position = spaceBelow >= spaceAbove ? "bottom" : "top";
   }
 
+  // Calculate dropdown width and ensure it stays with input horizontally
+  const dropdownWidth = triggerRect.width;
+
+  // Calculate dimensions for dropdown
   const style: React.CSSProperties = {
     position: "fixed",
-    width: triggerRect.width,
-    left: triggerRect.left,
-    maxHeight: dropdownHeight,
+    width: dropdownWidth,
+    maxHeight: Math.min(
+      dropdownHeight,
+      position === "bottom" ? spaceBelow : spaceAbove
+    ),
     overflowY: "auto",
     zIndex: 9999,
+    // Important: Always align exactly with the input field horizontally
+    left: triggerRect.left,
   };
 
+  // Set vertical position
   if (position === "bottom") {
     style.top = triggerRect.bottom + margin;
   } else {
@@ -48,7 +59,6 @@ export const determineDropdownPosition = (
 
   return { position, style };
 };
-
 const findScrollableParent = (
   element: HTMLElement | null
 ): HTMLElement | null => {

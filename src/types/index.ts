@@ -189,13 +189,50 @@ export enum ControllerType {
   TIME = "time",
   DATETIME = "datetime",
   FILE = "file",
-  PHONE = "phone",
-  URL = "url",
-  RANGE = "range",
-  COLOR = "color",
-  HIDDEN = "hidden",
-  CUSTOM = "custom",
 }
+// export type FormControllerTypesProps =
+//   | "text"
+//   | "email"
+//   | "number"
+//   | "password"
+//   | "select"
+//   | "multi-select"
+//   | "searchable-select"
+//   | "textarea"
+//   | "date"
+//   | "checkbox"
+// | "group-checkbox"
+// | "phone-number"
+// | "upload"
+// | "rich-text-editor"
+// | "react-node";
+
+export type ControllerTypeType =
+  | "text"
+  | "email"
+  | "password"
+  | "number"
+  | "textarea"
+  | "checkbox"
+  | "radio"
+  | "select"
+  | "searchable-select"
+  | "select-from-api"
+  | "searchable-select-from-api"
+  | "multi-select"
+  | "searchable-multi-select"
+  | "multi-select-from-api"
+  | "searchable-multi-select-from-api"
+  | "date"
+  | "time"
+  | "datetime"
+  | "file"
+  | "phone"
+  | "group-checkbox"
+  | "phone-number"
+  | "upload"
+  | "rich-text-editor"
+  | "react-node";
 
 export interface ModalType {
   open: boolean;
@@ -212,7 +249,7 @@ export interface OptionsApiOptions {
   includeAll?: boolean;
 }
 export interface Controller {
-  type: ControllerType | string;
+  type: ControllerTypeType;
   name: string;
   label?: string;
   placeholder?: string;

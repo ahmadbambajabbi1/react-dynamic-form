@@ -51,11 +51,11 @@ const DateHandler: React.FC<DateHandlerProps> = ({ controller, field }) => {
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       setPosition(
-        determineDropdownPosition(triggerRef.current, {
+        determineDropdownPosition(triggerRef?.current, {
           dropdownHeight: 380,
           margin: 8,
           preferredPosition: "bottom",
-        })
+        })?.position
       );
     }
   }, [isOpen]);

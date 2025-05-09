@@ -125,7 +125,6 @@ const OttpInputHandler: React.FC<OttpInputHandlerProps> = ({
           setVerifyingData(mockResponse.data.data);
           setVerify(true);
 
-          // Call onFinish callback if provided
           if (apiOptions?.onFinish) {
             apiOptions.onFinish(mockResponse.data);
           }
@@ -135,7 +134,6 @@ const OttpInputHandler: React.FC<OttpInputHandlerProps> = ({
       }
     } catch (error) {
       console.error("Verification error:", error);
-      // Handle errors appropriately
       form.setError("code", {
         type: "manual",
         message: "Invalid verification code",

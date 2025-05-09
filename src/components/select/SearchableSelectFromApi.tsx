@@ -111,7 +111,7 @@ export const SearchableSelectFromApi = (props: any) => {
             {loading || loadingResults ? (
               <Spinner />
             ) : (
-              <>
+              <div className="flex items-center gap-x-1">
                 {selectedOption && clearable && !isOpen && (
                   <button
                     type="button"
@@ -131,7 +131,7 @@ export const SearchableSelectFromApi = (props: any) => {
                 >
                   <ChevronDown />
                 </span>
-              </>
+              </div>
             )}
           </div>
         </div>

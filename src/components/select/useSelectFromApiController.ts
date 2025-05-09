@@ -243,11 +243,7 @@ export const useSelectFromApiController = (
         clearTimeout(timeoutId);
       };
     }
-  }, [
-    memoizedDependentValue,
-    optionsApiOptions?.dependingContrllerName,
-    fetchOptions,
-  ]);
+  }, [memoizedDependentValue, optionsApiOptions?.dependingContrllerName]);
 
   return {
     ...baseSelect,

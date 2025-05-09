@@ -19,13 +19,13 @@ export const initializeDefaultValues = (
     if ("groupControllers" in controller && controller.groupControllers) {
       controller.groupControllers.forEach((field: any) => {
         if (field.name) {
-          acc[field.name] = field.defaultValue || "";
+          acc[field.name] = field.defaultValue || undefined;
         }
       });
     } else {
       const field = controller as Controller;
       if (field.name) {
-        acc[field.name] = field.defaultValue || "";
+        acc[field.name] = field.defaultValue || undefined;
       }
     }
     return acc;
@@ -43,13 +43,13 @@ export const initializeDefaultValuesFromSteps = (
       if ("groupControllers" in controller && controller.groupControllers) {
         controller.groupControllers.forEach((field: any) => {
           if (field.name) {
-            acc[field.name] = field.defaultValue || "";
+            acc[field.name] = field.defaultValue || undefined;
           }
         });
       } else {
         const field = controller as Controller;
         if (field.name) {
-          acc[field.name] = field.defaultValue || "";
+          acc[field.name] = field.defaultValue || undefined;
         }
       }
     });

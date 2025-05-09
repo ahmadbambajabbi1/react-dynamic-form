@@ -15,6 +15,8 @@ import NormalHandler from "./components/handlers/NormalHandler";
 import StepsHandler from "./components/handlers/StepsHandler";
 import OttpInputHandler from "./components/OttpInputHandler";
 import Axios from "./utils/axiosConfig";
+import { useCatchErrorHandler } from "./utils/error-handlers";
+import ToastProvider, { useToast } from "./contexts/toast-context";
 
 const VERIFICATION_DATA_LOCASTORAGE_NAME = "verification_data";
 const VERIFICATION_VERIFY_NAME = "verification_status";
@@ -35,6 +37,8 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
   stepPreview,
   submitBtn,
 }: DynamicFormProps<T>) => {
+  const catchErrorHandler = useCatchErrorHandler();
+  const toast = useToast();
   const [submitLoading, setSubmitLoading] = useState(false);
   const [verifyingData, setVerifyingData] = useState<any>(null);
   const [verify, setVerify] = useState(false);
@@ -67,7 +71,6 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
 
   async function onSubmit(values: z.infer<any>) {
     const { setError, reset } = form;
-
     if (handleSubmit) {
       setSubmitLoading(true);
       try {
@@ -79,7 +82,6 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
       }
       return;
     }
-
     if (!handleSubmit && !verify) {
       setSubmitLoading(true);
       try {
@@ -112,11 +114,35 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
           ) {
             apiOptions?.onFinish(res?.data);
           }
-
           reset();
         }
       } catch (error) {
-        console.error("API submission error:", error);
+        catchErrorHandler(error, (data, type) => {
+          if (type === "form") {
+            if (Array.isArray(data)) {
+              data.map((dt) => {
+                setError(dt?.path[0], {
+                  type: "manual",
+                  message: dt?.message,
+                });
+              });
+            } else {
+              setError(data?.path[0], {
+                type: "manual",
+                message: data?.message,
+              });
+            }
+          }
+          if (type === "modal") {
+            setModal({
+              open: true,
+              data: data,
+            });
+          }
+          if (apiOptions?.errorHandler) {
+            apiOptions?.errorHandler(data, type as any);
+          }
+        });
       } finally {
         setSubmitLoading(false);
       }
@@ -133,77 +159,87 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
   }
 
   return (
-    <FormProvider {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        {...(props?.form ? props.form : {})}
-        className={cn("space-y-4", props?.form?.className)}
-      >
-        {formtype === "steper" ? (
-          <StepsHandler
-            form={form}
-            props={props}
-            steps={steps}
-            stepPreview={stepPreview as any}
-          />
-        ) : (
-          <NormalHandler
-            controllers={controllers as any}
-            props={props}
-            form={form}
-          />
-        )}
-
-        {!verify &&
-          (tricker ? (
-            tricker({ submitLoading, isValid: form.formState.isValid })
+    <ToastProvider>
+      <FormProvider {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          {...(props?.form ? props.form : {})}
+          className={cn("space-y-4", props?.form?.className)}
+        >
+          {formtype === "steper" ? (
+            <StepsHandler
+              form={form}
+              props={props}
+              steps={steps}
+              stepPreview={stepPreview as any}
+            />
           ) : (
-            <button
-              className={cn(
-                "px-4 py-2 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4 capitalize",
-                submitBtn?.className
-              )}
-              {...(submitBtn || {})}
-              type={
-                (submitBtn?.type as "reset" | "button" | "submit") || "submit"
-              }
-              disabled={submitLoading || (submitBtn?.disabled as boolean)}
-            >
-              {submitLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </span>
-              ) : submitBtn?.label ? (
-                submitBtn?.label
-              ) : (
-                "Submit"
-              )}
-            </button>
-          ))}
+            <NormalHandler
+              controllers={controllers as any}
+              props={props}
+              form={form}
+            />
+          )}
 
-        {modal.open && modalComponenet && modalComponenet(modal, setModal)}
-      </form>
-    </FormProvider>
+          {!verify &&
+            (tricker ? (
+              tricker({ submitLoading, isValid: form.formState.isValid })
+            ) : (
+              <button
+                className={cn(
+                  "px-4 py-2 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed capitalize",
+                  submitBtn?.className
+                )}
+                {...(submitBtn || {})}
+                type={
+                  (submitBtn?.type as "reset" | "button" | "submit") || "submit"
+                }
+                disabled={submitLoading || (submitBtn?.disabled as boolean)}
+              >
+                {submitLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : submitBtn?.label ? (
+                  submitBtn?.label
+                ) : (
+                  "Submit"
+                )}
+              </button>
+            ))}
+
+          {modal.open && modalComponenet && modalComponenet(modal, setModal)}
+        </form>
+        <button
+          onClick={() => {
+            toast.error("somethinf happs hapens");
+            console.log("clickked");
+          }}
+        >
+          toast
+        </button>
+      </FormProvider>
+    </ToastProvider>
   );
 };
 
