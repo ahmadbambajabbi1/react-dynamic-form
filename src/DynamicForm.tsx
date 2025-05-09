@@ -16,12 +16,13 @@ import StepsHandler from "./components/handlers/StepsHandler";
 import OttpInputHandler from "./components/OttpInputHandler";
 import Axios from "./utils/axiosConfig";
 import { useCatchErrorHandler } from "./utils/error-handlers";
-import ToastProvider, { useToast } from "./contexts/toast-context";
+import { ToastProvider, useToast } from "./contexts/toast-context";
 
 const VERIFICATION_DATA_LOCASTORAGE_NAME = "verification_data";
 const VERIFICATION_VERIFY_NAME = "verification_status";
 
-const DynamicForm = <T extends z.ZodType<any, any>>({
+// Inner component that uses toast hook
+const DynamicFormInner = <T extends z.ZodType<any, any>>({
   controllers,
   formSchema,
   handleSubmit,
@@ -75,7 +76,9 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
       setSubmitLoading(true);
       try {
         await handleSubmit({ values, setError, reset });
+        toast.success("Form submitted successfully");
       } catch (error) {
+        toast.error("Error submitting form");
         console.error("Form submission error:", error);
       } finally {
         setSubmitLoading(false);
@@ -95,6 +98,8 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
         );
 
         if (res?.status >= 200 && res.status <= 299) {
+          toast.success("Form submitted successfully");
+
           if (res?.data?.action === SUCCESSTYPE.VERIFIED) {
             localStorage.setItem(
               VERIFICATION_DATA_LOCASTORAGE_NAME,
@@ -132,6 +137,7 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
                 message: data?.message,
               });
             }
+            toast.error("Please correct the form errors");
           }
           if (type === "modal") {
             setModal({
@@ -159,86 +165,123 @@ const DynamicForm = <T extends z.ZodType<any, any>>({
   }
 
   return (
-    <ToastProvider>
-      <FormProvider {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          {...(props?.form ? props.form : {})}
-          className={cn("space-y-4", props?.form?.className)}
-        >
-          {formtype === "steper" ? (
-            <StepsHandler
-              form={form}
-              props={props}
-              steps={steps}
-              stepPreview={stepPreview as any}
-            />
+    <FormProvider {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        {...(props?.form ? props.form : {})}
+        className={cn("space-y-4", props?.form?.className)}
+      >
+        {formtype === "steper" ? (
+          <StepsHandler
+            form={form}
+            props={props}
+            steps={steps}
+            stepPreview={stepPreview as any}
+          />
+        ) : (
+          <NormalHandler
+            controllers={controllers as any}
+            props={props}
+            form={form}
+          />
+        )}
+
+        {!verify &&
+          (tricker ? (
+            tricker({ submitLoading, isValid: form.formState.isValid })
           ) : (
-            <NormalHandler
-              controllers={controllers as any}
-              props={props}
-              form={form}
-            />
-          )}
+            <button
+              className={cn(
+                "px-4 py-2 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed capitalize",
+                submitBtn?.className
+              )}
+              {...(submitBtn || {})}
+              type={
+                (submitBtn?.type as "reset" | "button" | "submit") || "submit"
+              }
+              disabled={submitLoading || (submitBtn?.disabled as boolean)}
+            >
+              {submitLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : submitBtn?.label ? (
+                submitBtn?.label
+              ) : (
+                "Submit"
+              )}
+            </button>
+          ))}
 
-          {!verify &&
-            (tricker ? (
-              tricker({ submitLoading, isValid: form.formState.isValid })
-            ) : (
-              <button
-                className={cn(
-                  "px-4 py-2 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed capitalize",
-                  submitBtn?.className
-                )}
-                {...(submitBtn || {})}
-                type={
-                  (submitBtn?.type as "reset" | "button" | "submit") || "submit"
-                }
-                disabled={submitLoading || (submitBtn?.disabled as boolean)}
-              >
-                {submitLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Processing...
-                  </span>
-                ) : submitBtn?.label ? (
-                  submitBtn?.label
-                ) : (
-                  "Submit"
-                )}
-              </button>
-            ))}
+        {modal.open && modalComponenet && modalComponenet(modal, setModal)}
+      </form>
 
-          {modal.open && modalComponenet && modalComponenet(modal, setModal)}
-        </form>
+      {/* Test toast buttons */}
+      <div className="mt-4 flex flex-wrap gap-2">
         <button
-          onClick={() => {
-            toast.error("somethinf happs hapens");
-            console.log("clickked");
-          }}
+          type="button"
+          onClick={() =>
+            toast.success(
+              "Success message example Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sapiente et voluptatibus consequuntur. Quidem obcaecati dolor molestiae amet ullam quis molestias velit magnam autem veniam, tenetur in neque voluptatibus eos eaque. Lorem ipsum dolor sit amet consectetur adipisicing elit. Placeat quas exercitationem deserunt voluptatem a, sed fuga officiis doloremque aliquid soluta praesentium totam aliquam, minus excepturi enim voluptatum fugiat veniam sint quae tempore repellendus nam explicabo eum. Illo amet consectetur, a voluptatem laudantium voluptatibus quas distinctio facere quam doloribus eaque laborum cupiditate ut quos, tenetur qui nesciunt. Aut dolore, nisi labore repellendus provident itaque accusamus perferendis nihil, tempora nulla saepe hic. Exercitationem laudantium debitis dolorum laboriosam quas accusantium, nesciunt odio ipsam, dolor aut qui, et fugiat ipsa quia earum excepturi mollitia consequuntur itaque. Exercitationem sunt, eligendi eaque dolorem quia illo temporibus."
+            )
+          }
+          className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
         >
-          toast
+          Test Success
         </button>
-      </FormProvider>
+        <button
+          type="button"
+          onClick={() => toast.error("Error message example")}
+          className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+        >
+          Test Error
+        </button>
+        <button
+          type="button"
+          onClick={() => toast.warning("Warning message example")}
+          className="px-3 py-1 bg-amber-500 text-white rounded text-sm hover:bg-amber-600 transition-colors"
+        >
+          Test Warning
+        </button>
+        <button
+          type="button"
+          onClick={() => toast.info("Info message example")}
+          className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+        >
+          Test Info
+        </button>
+      </div>
+    </FormProvider>
+  );
+};
+
+// Wrapper component that provides ToastProvider
+const DynamicForm = <T extends z.ZodType<any, any>>(
+  props: DynamicFormProps<T>
+) => {
+  return (
+    <ToastProvider>
+      <DynamicFormInner {...props} />
     </ToastProvider>
   );
 };

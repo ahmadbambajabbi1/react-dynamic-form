@@ -727,8 +727,8 @@ const DynamicFormExample = () => {
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <DynamicForm
           controllers={controllers}
-          formSchema={formSchema}
-          handleSubmit={handleSubmit}
+          // formSchema={formSchema}
+          // handleSubmit={handleSubmit}
           props={{
             form: {
               className: "space-y-6",
@@ -743,6 +743,16 @@ const DynamicFormExample = () => {
           submitBtn={{
             label: "Submit Form",
             className: "w-full bg-black hover:bg-black text-white",
+          }}
+          apiOptions={{
+            api: "/post/see",
+            method: "POST",
+            onFinish(data) {
+              console.log({ data });
+            },
+            errorHandler(data, type) {
+              console.log({ data, type });
+            },
           }}
         />
       </Modal>
