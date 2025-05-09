@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { SearchableMultiSelectProps } from "./types";
 import { useSearchableMultiSelectController } from "./useSearchableMultiSelectController";
-import { determineDropdownPosition } from "../../utils/dropdown";
+import { useDropdownPosition, findDialogContainer } from "../../utils/dropdown";
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { CheckIcon } from "../../icons/CheckIcon";
@@ -40,22 +40,31 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
 
   const triggerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{
-    position: "top" | "bottom";
-    style: React.CSSProperties;
-  }>({ position: "bottom", style: {} });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
+
+  const { position, initPositioning } = useDropdownPosition();
 
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setDropdownPosition(
-        determineDropdownPosition(triggerRef.current, {
+      if (!dialogRef.current) {
+        dialogRef.current = findDialogContainer(triggerRef.current);
+      }
+
+      const cleanup = initPositioning(
+        triggerRef.current,
+        menuRef.current,
+        dialogRef.current,
+        {
           dropdownHeight: 250,
           margin: 8,
           preferredPosition: "bottom",
-        })
+        }
       );
+
+      return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -188,8 +197,8 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
 
         {isOpen && !disabled && (
           <div
-            ref={menuProps.ref}
-            style={dropdownPosition.style}
+            ref={menuRef}
+            style={position.style}
             className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto z-50"
           >
             {filteredOptions.length === 0 ? (

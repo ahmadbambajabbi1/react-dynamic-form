@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { useSelectController } from "./useSelectController";
 import { SelectProps } from "./types";
-import { determineDropdownPosition } from "../../utils/dropdown";
+import { useDropdownPosition, findDialogContainer } from "../../utils/dropdown";
 
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
@@ -32,28 +32,31 @@ export const Select: React.FC<SelectProps> = (props) => {
   } = useSelectController(props);
 
   const triggerRef = useRef<HTMLDivElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{
-    position: "top" | "bottom";
-    style: React.CSSProperties;
-  }>({ position: "bottom", style: {} });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
+
+  const { position, initPositioning } = useDropdownPosition();
 
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setDropdownPosition(
-        determineDropdownPosition(triggerRef.current, {
+      if (!dialogRef.current) {
+        dialogRef.current = findDialogContainer(triggerRef.current);
+      }
+
+      const cleanup = initPositioning(
+        triggerRef.current,
+        menuRef.current,
+        dialogRef.current,
+        {
           dropdownHeight: 250,
           margin: 8,
           preferredPosition: "bottom",
-        })
+        }
       );
-    }
-  }, [isOpen]);
 
-  const sizeClasses = {
-    sm: "h-8 text-sm",
-    md: "h-10 text-base",
-    lg: "h-12 text-lg",
-  };
+      return cleanup;
+    }
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -73,6 +76,12 @@ export const Select: React.FC<SelectProps> = (props) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, toggleMenu]);
+
+  const sizeClasses = {
+    sm: "h-8 text-sm",
+    md: "h-10 text-base",
+    lg: "h-12 text-lg",
+  };
 
   return (
     <div className={`select-container w-full ${className}`}>
@@ -136,8 +145,8 @@ export const Select: React.FC<SelectProps> = (props) => {
 
         {isOpen && !disabled && (
           <div
-            ref={menuProps.ref}
-            style={dropdownPosition.style}
+            ref={menuRef}
+            style={position.style}
             className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {options.length === 0 ? (

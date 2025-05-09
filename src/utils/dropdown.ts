@@ -1,9 +1,14 @@
+// src/utils/dropdown.ts - Enhanced version with dialog support and scroll handling
+import { useEffect, useRef, useState } from "react";
+
+// Enhanced position calculation with dialog support
 export const determineDropdownPosition = (
   triggerElement: HTMLElement | null,
   options?: {
     dropdownHeight?: number;
     margin?: number;
     preferredPosition?: "top" | "bottom";
+    container?: HTMLElement | null; // Optional container (like a dialog) to consider
   }
 ): { position: "top" | "bottom"; style: React.CSSProperties } => {
   if (!triggerElement) return { position: "bottom", style: {} };
@@ -12,12 +17,24 @@ export const determineDropdownPosition = (
     dropdownHeight = 250,
     margin = 8,
     preferredPosition = "bottom",
+    container = null,
   } = options || {};
 
   // Get dimensions
   const triggerRect = triggerElement.getBoundingClientRect();
   const viewportHeight = window.innerHeight;
-  const viewportWidth = window.innerWidth;
+
+  // Check if inside a dialog or other positioned container
+  let offsetLeft = 0;
+  let offsetTop = 0;
+
+  // If we have a container, calculate offsets relative to it
+  if (container) {
+    const containerRect = container.getBoundingClientRect();
+    // Account for container's position and any transforms
+    offsetLeft = containerRect.left;
+    offsetTop = containerRect.top;
+  }
 
   // Calculate available space
   const spaceBelow = viewportHeight - triggerRect.bottom - margin;
@@ -46,11 +63,9 @@ export const determineDropdownPosition = (
     ),
     overflowY: "auto",
     zIndex: 9999,
-    // Important: Always align exactly with the input field horizontally
-    left: triggerRect.left,
   };
+  style.left = triggerRect.left;
 
-  // Set vertical position
   if (position === "bottom") {
     style.top = triggerRect.bottom + margin;
   } else {
@@ -58,6 +73,127 @@ export const determineDropdownPosition = (
   }
 
   return { position, style };
+};
+export const useDropdownPosition = () => {
+  const [position, setPosition] = useState<{
+    position: "top" | "bottom";
+    style: React.CSSProperties;
+  }>({ position: "bottom", style: {} });
+
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const dropdownRef = useRef<HTMLElement | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
+  const optionsRef = useRef<any>(null);
+
+  // Function to recalculate position
+  const recalculatePosition = () => {
+    if (triggerRef.current) {
+      const newPosition = determineDropdownPosition(triggerRef.current, {
+        ...optionsRef.current,
+        container: containerRef.current,
+      });
+      setPosition(newPosition);
+    }
+  };
+
+  // Initialize position tracking
+  const initPositioning = (
+    trigger: HTMLElement | null,
+    dropdown: HTMLElement | null,
+    container: HTMLElement | null = null,
+    options?: {
+      dropdownHeight?: number;
+      margin?: number;
+      preferredPosition?: "top" | "bottom";
+    }
+  ) => {
+    triggerRef.current = trigger;
+    dropdownRef.current = dropdown;
+    containerRef.current = container;
+    optionsRef.current = options || {};
+
+    recalculatePosition();
+
+    // Handle scroll events on all possible scroll containers
+    const handleScroll = () => {
+      requestAnimationFrame(recalculatePosition);
+    };
+
+    // Find all possible scroll containers
+    const scrollContainers: HTMLElement[] = [];
+
+    // Add document as default
+    scrollContainers.push(document.documentElement);
+
+    // Add dialog or other direct container if available
+    if (container) {
+      scrollContainers.push(container);
+
+      // Find scrollable parents of the container
+      let parent = container.parentElement;
+      while (parent) {
+        const style = window.getComputedStyle(parent);
+        if (
+          /(auto|scroll|overlay)/.test(
+            style.overflow + style.overflowY + style.overflowX
+          )
+        ) {
+          scrollContainers.push(parent);
+        }
+        parent = parent.parentElement;
+      }
+    }
+
+    // Add event listeners
+    scrollContainers.forEach((container) => {
+      container.addEventListener("scroll", handleScroll, { passive: true });
+    });
+
+    // Handle window resize
+    window.addEventListener("resize", handleScroll, { passive: true });
+
+    // Return cleanup function
+    return () => {
+      scrollContainers.forEach((container) => {
+        container.removeEventListener("scroll", handleScroll);
+      });
+      window.removeEventListener("resize", handleScroll);
+    };
+  };
+
+  return {
+    position,
+    initPositioning,
+    recalculatePosition,
+  };
+};
+export const findDialogContainer = (
+  element: HTMLElement | null
+): HTMLElement | null => {
+  if (!element) return null;
+
+  // Check for dialog role or common dialog class names
+  const isDialog = (el: HTMLElement): boolean => {
+    return (
+      el.getAttribute("role") === "dialog" ||
+      el.getAttribute("aria-modal") === "true" ||
+      el.classList.contains("dialog") ||
+      el.classList.contains("modal") ||
+      el.classList.contains("DialogContent") ||
+      el.classList.contains("ModalContent")
+    );
+  };
+
+  // Start checking from the element's parent
+  let current = element.parentElement;
+  while (current) {
+    if (isDialog(current)) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+
+  return null;
 };
 const findScrollableParent = (
   element: HTMLElement | null
@@ -71,21 +207,4 @@ const findScrollableParent = (
   }
 
   return findScrollableParent(element.parentElement);
-};
-
-export const useDropdownPosition = () => {
-  const calculatePosition = (
-    element: HTMLElement | null,
-    options?: {
-      dropdownHeight?: number;
-      margin?: number;
-      preferredPosition?: "top" | "bottom";
-    }
-  ): { position: "top" | "bottom"; style: React.CSSProperties } => {
-    return determineDropdownPosition(element, options);
-  };
-
-  return {
-    calculatePosition,
-  };
 };

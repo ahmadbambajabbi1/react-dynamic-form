@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { useMultiSelectController } from "./useMultiSelectController";
-import { SelectOption, MultiSelectProps } from "./types";
-import { determineDropdownPosition } from "../../utils/dropdown";
+import { MultiSelectProps } from "./types";
+import { useDropdownPosition, findDialogContainer } from "../../utils/dropdown";
 
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
@@ -34,22 +34,31 @@ export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
   } = useMultiSelectController(props);
 
   const triggerRef = useRef<HTMLDivElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{
-    position: "top" | "bottom";
-    style: React.CSSProperties;
-  }>({ position: "bottom", style: {} });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
+
+  const { position, initPositioning } = useDropdownPosition();
 
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setDropdownPosition(
-        determineDropdownPosition(triggerRef.current, {
+      if (!dialogRef.current) {
+        dialogRef.current = findDialogContainer(triggerRef.current);
+      }
+
+      const cleanup = initPositioning(
+        triggerRef.current,
+        menuRef.current,
+        dialogRef.current,
+        {
           dropdownHeight: 250,
           margin: 8,
           preferredPosition: "bottom",
-        })
+        }
       );
+
+      return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -167,8 +176,8 @@ export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
 
         {isOpen && !disabled && (
           <div
-            ref={menuProps.ref}
-            style={dropdownPosition.style}
+            ref={menuRef}
+            style={position.style}
             className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto z-50"
           >
             {options.length === 0 ? (

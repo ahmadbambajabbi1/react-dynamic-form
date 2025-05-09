@@ -1,9 +1,9 @@
-import React, { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import { useSearchableSelectFromApiController } from "./useSearchableSelectFromApiController";
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { Spinner } from "../../icons/Spinner";
-import { determineDropdownPosition } from "../../utils/dropdown";
+import { useDropdownPosition, findDialogContainer } from "../../utils/dropdown";
 
 export const SearchableSelectFromApi = (props: any) => {
   const {
@@ -38,22 +38,31 @@ export const SearchableSelectFromApi = (props: any) => {
 
   const triggerRef = useRef(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{
-    position: "top" | "bottom";
-    style: React.CSSProperties;
-  }>({ position: "bottom", style: {} });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
+
+  const { position, initPositioning } = useDropdownPosition();
 
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setDropdownPosition(
-        determineDropdownPosition(triggerRef.current, {
+      if (!dialogRef.current) {
+        dialogRef.current = findDialogContainer(triggerRef.current);
+      }
+
+      const cleanup = initPositioning(
+        triggerRef.current,
+        menuRef.current,
+        dialogRef.current,
+        {
           dropdownHeight: 250,
           margin: 8,
           preferredPosition: "bottom",
-        })
+        }
       );
+
+      return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -144,8 +153,8 @@ export const SearchableSelectFromApi = (props: any) => {
 
         {isOpen && !disabled && (
           <div
-            ref={menuProps.ref}
-            style={dropdownPosition.style}
+            ref={menuRef}
+            style={position.style}
             className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {loading ? (
