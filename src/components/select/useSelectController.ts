@@ -8,7 +8,8 @@ import {
 export const useSelectController = (
   props: SelectControllerProps
 ): SelectControllerReturn => {
-  const { options, value, onChange, defaultValue = null } = props;
+  // Add default empty array for options
+  const { options = [], value, onChange, defaultValue = null } = props;
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState<string | null>(
@@ -19,7 +20,7 @@ export const useSelectController = (
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Find the currently selected option
+  // Find the currently selected option - now safe since options has a default value
   const selectedOption =
     options.find((opt) => opt.value === selectedValue) || null;
 

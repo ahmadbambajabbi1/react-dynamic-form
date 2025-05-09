@@ -243,8 +243,9 @@ export interface Controller {
   autoComplete?: string;
   readOnly?: boolean;
   renderComponent?: (props: any) => JSX.Element;
-  // Added support for dependent controllers
   optionsApiOptions?: OptionsApiOptions;
+  display?: (formData: Record<string, any>) => boolean;
+  visible?: (formData: Record<string, any>) => boolean;
   [key: string]: any;
 }
 

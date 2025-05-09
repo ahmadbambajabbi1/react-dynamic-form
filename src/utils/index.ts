@@ -68,6 +68,12 @@ export const filterVisibleControllers = (
 
   return controllers.filter((controller) => {
     const isVisible = (ctrl: Controller) => {
+      if (ctrl.display !== undefined) {
+        if (typeof ctrl.display === "function") {
+          return ctrl.display(formValues);
+        }
+      }
+
       if (ctrl.visible !== undefined) {
         if (typeof ctrl.visible === "function") {
           return ctrl.visible(formValues);
@@ -91,7 +97,6 @@ export const filterVisibleControllers = (
     return true;
   });
 };
-
 /**
  * Generate field ID based on name and optional prefix
  */

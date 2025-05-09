@@ -42,18 +42,11 @@ export const SelectController: React.FC<SelectControllerProps> = ({
     className,
     type,
     showError = false,
-    // Added support for dependent controllers
     optionsApiOptions,
   } = controller;
-
   const error = form.formState.errors[name]?.message as string;
-
-  // Safely extract value from field
   const value = field.value;
-
-  // Handle change event for select fields with check to prevent infinite loops
   const handleChange = (newValue: any) => {
-    // Only update if the value actually changed
     if (JSON.stringify(field.value) !== JSON.stringify(newValue)) {
       form.setValue(name, newValue, {
         shouldValidate: true,
@@ -62,7 +55,6 @@ export const SelectController: React.FC<SelectControllerProps> = ({
     }
   };
 
-  // Determine which Select component to use based on the controller type
   switch (type) {
     case "searchable-select-from-api":
       return (
@@ -80,9 +72,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           error={error}
           showError={showError}
           className={className}
-          // Pass the optionsApiOptions for dependent controllers
           optionsApiOptions={optionsApiOptions}
-          // Handle errors gracefully by providing fallback options
           options={options || []}
           controller={controller}
         />
@@ -102,9 +92,7 @@ export const SelectController: React.FC<SelectControllerProps> = ({
           error={error}
           showError={showError}
           className={className}
-          // Pass the optionsApiOptions for dependent controllers
           optionsApiOptions={optionsApiOptions}
-          // Handle errors gracefully by providing fallback options
           options={options || []}
           controller={controller}
         />

@@ -16,7 +16,7 @@ export const MultiSelectFromApi = (props: any) => {
     clearable = true,
     className = "",
     size = "md",
-    showError = true, // Add showError prop with default true
+    showError = true,
   } = props;
 
   const {
@@ -35,22 +35,55 @@ export const MultiSelectFromApi = (props: any) => {
     refresh,
   } = useMultiSelectFromApiController(props);
 
-  // Add ref and position state for dropdown positioning
-  const triggerRef = useRef(null);
-  const [position, setPosition] = useState("bottom");
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
 
-  // Update dropdown position when opened
+  // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setPosition(
-        determineDropdownPosition(triggerRef.current, {
-          dropdownHeight: 250,
-          margin: 8,
-          preferredPosition: "bottom",
-        })
-      );
+      const rect = triggerRef.current.getBoundingClientRect();
+
+      const pos = determineDropdownPosition(triggerRef.current, {
+        dropdownHeight: 250,
+        margin: 8,
+        preferredPosition: "bottom",
+      });
+
+      setPosition(pos);
+
+      // Calculate the menu position
+      setMenuPosition({
+        top: pos === "bottom" ? rect.bottom : rect.top - 250,
+        left: rect.left,
+        width: rect.width,
+      });
     }
   }, [isOpen]);
+
+  // Handle clicks outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isOpen &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node) &&
+        menuProps.ref.current &&
+        !menuProps.ref.current.contains(event.target as Node)
+      ) {
+        toggleMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, toggleMenu]);
 
   // Size classes
   const sizeClasses = {
@@ -59,7 +92,6 @@ export const MultiSelectFromApi = (props: any) => {
     lg: "h-12 text-lg",
   };
 
-  // Render the component
   return (
     <div className={`multi-select-from-api-container w-full ${className}`}>
       {label && (
@@ -85,9 +117,9 @@ export const MultiSelectFromApi = (props: any) => {
           `}
           onClick={() => !disabled && toggleMenu()}
         >
-          {selectedOptions.length > 0 ? (
+          {selectedOptions?.length > 0 ? (
             <div className="flex flex-wrap gap-1 py-1 max-w-full overflow-hidden">
-              {selectedOptions.length <= 3 ? (
+              {selectedOptions?.length <= 3 ? (
                 selectedOptions.map((option) => (
                   <div
                     key={option.value}
@@ -108,7 +140,7 @@ export const MultiSelectFromApi = (props: any) => {
                 ))
               ) : (
                 <div className="text-gray-700">
-                  {selectedOptions.length} items selected
+                  {selectedOptions?.length} items selected
                 </div>
               )}
             </div>
@@ -127,7 +159,7 @@ export const MultiSelectFromApi = (props: any) => {
               <Spinner />
             ) : (
               <>
-                {selectedOptions.length > 0 && clearable && (
+                {selectedOptions?.length > 0 && clearable && (
                   <button
                     type="button"
                     className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -151,7 +183,6 @@ export const MultiSelectFromApi = (props: any) => {
           </div>
         </div>
 
-        {/* Only show error if showError prop is true */}
         {showError && (error || apiError) && (
           <p className="mt-1 text-sm text-red-500">
             {error || apiError?.message}
@@ -161,10 +192,14 @@ export const MultiSelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            className={`
-              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
-            `}
+            style={{
+              position: "fixed",
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              width: `${menuPosition.width}px`,
+              zIndex: 9999,
+            }}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {loading ? (
               <div className="p-3 text-sm text-gray-500 text-center flex items-center justify-center">
@@ -186,13 +221,13 @@ export const MultiSelectFromApi = (props: any) => {
                   Try again
                 </button>
               </div>
-            ) : options.length === 0 ? (
+            ) : options?.length === 0 ? (
               <div className="p-3 text-sm text-gray-500 text-center">
                 No options available
               </div>
             ) : (
               <ul className="py-1">
-                {options.map((option) => (
+                {options?.map((option) => (
                   <li
                     key={option.value}
                     className={`

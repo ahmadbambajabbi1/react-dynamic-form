@@ -32,8 +32,8 @@ export const useMultiSelectController = (
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Find the currently selected options
-  const selectedOptions = options.filter((opt) =>
-    selectedValues.includes(opt.value as string)
+  const selectedOptions = options?.filter((opt) =>
+    selectedValues?.includes(opt?.value as string)
   );
 
   const openMenu = useCallback(() => {
@@ -71,7 +71,7 @@ export const useMultiSelectController = (
       setSelectedValues((prevValues) => {
         // If already selected, remove it (toggle behavior)
         if (prevValues.includes(optionValue)) {
-          return prevValues.filter((v) => v !== optionValue);
+          return prevValues?.filter((v) => v !== optionValue);
         }
 
         // Check if maximum selections reached
@@ -89,7 +89,7 @@ export const useMultiSelectController = (
   const removeOption = useCallback((option: SelectOption) => {
     const optionValue = option.value as string;
     setSelectedValues((prevValues) =>
-      prevValues.filter((v) => v !== optionValue)
+      prevValues?.filter((v) => v !== optionValue)
     );
   }, []);
 
@@ -142,7 +142,7 @@ export const useMultiSelectController = (
 
   // Generate display text for the input
   const getDisplayText = () => {
-    if (selectedOptions.length === 0) {
+    if (selectedOptions?.length === 0) {
       return "";
     }
 
@@ -150,11 +150,11 @@ export const useMultiSelectController = (
       return selectionSummary(selectedOptions);
     }
 
-    if (selectedOptions.length === 1) {
-      return selectedOptions[0].label;
+    if (selectedOptions?.length === 1) {
+      return selectedOptions[0]?.label;
     }
 
-    return `${selectedOptions.length} items selected`;
+    return `${selectedOptions?.length} items selected`;
   };
 
   return {

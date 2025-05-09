@@ -3,7 +3,7 @@ import {
   SelectFromApiControllerReturn,
   SelectOption,
 } from "./types";
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { useSelectController } from "./useSelectController";
 import { useFormContext } from "react-hook-form";
 import Axios from "../../utils/axiosConfig";
@@ -26,24 +26,43 @@ export const useSelectFromApiController = (
   const [error, setError] = useState<Error | null>(null);
   const hasFetchedRef = useRef(false);
   const prevDependentValueRef = useRef<any>(undefined);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
+  const fetchInProgressRef = useRef(false);
 
-  let formContext;
+  const paramsRef = useRef(params);
+  useEffect(() => {
+    paramsRef.current = params;
+  }, [params]);
+
+  const apiUrlRef = useRef(apiUrl);
+  useEffect(() => {
+    apiUrlRef.current = apiUrl || (optionsApiOptions?.api as string);
+  }, [apiUrl]);
+
+  let formContext = null;
   try {
     formContext = useFormContext();
   } catch (e) {
-    formContext = null;
+    // Silently handle error
   }
 
-  let dependentValue = undefined;
-  if (formContext && optionsApiOptions?.dependingContrllerName) {
-    try {
-      dependentValue = formContext.watch(
-        optionsApiOptions.dependingContrllerName
-      );
-    } catch (e) {
-      console.warn("Could not watch dependent field:", e);
+  const dependentValue = useMemo(() => {
+    if (!formContext || !optionsApiOptions?.dependingContrllerName) {
+      return undefined;
     }
-  }
+    try {
+      return formContext.watch(optionsApiOptions.dependingContrllerName);
+    } catch (e) {
+      return undefined;
+    }
+  }, [formContext, optionsApiOptions?.dependingContrllerName]);
+
+  const memoizedDependentValue = useMemo(
+    () => dependentValue,
+    [dependentValue]
+  );
+  const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
 
   const baseSelect = useSelectController({
     ...selectProps,
@@ -54,25 +73,35 @@ export const useSelectFromApiController = (
 
   const fetchOptions = useCallback(
     async (forceFetch: boolean = false) => {
+      if (!isMountedRef.current || (!forceFetch && fetchInProgressRef.current))
+        return;
+
       const shouldSkipFetch =
         !forceFetch &&
         hasFetchedRef.current &&
-        dependentValue === prevDependentValueRef.current;
+        memoizedDependentValue === prevDependentValueRef.current;
 
       if (shouldSkipFetch) return;
 
       if (
         optionsApiOptions?.dependingContrllerName &&
-        !dependentValue &&
+        !memoizedDependentValue &&
         !optionsApiOptions.includeAll
       ) {
         setOptions([]);
-        prevDependentValueRef.current = dependentValue;
+        prevDependentValueRef.current = memoizedDependentValue;
         return;
       }
 
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      abortControllerRef.current = new AbortController();
+
       setLoading(true);
       setError(null);
+      fetchInProgressRef.current = true;
 
       try {
         let requestParams: Record<string, any> = {};
@@ -84,18 +113,18 @@ export const useSelectFromApiController = (
           if (
             paramName &&
             optionsApiOptions?.dependingContrllerName &&
-            dependentValue
+            memoizedDependentValue
           ) {
-            requestParams[paramName] = dependentValue;
+            requestParams[paramName] = memoizedDependentValue;
           } else if (paramName) {
-            requestParams[paramName] = dependentValue || "";
+            requestParams[paramName] = memoizedDependentValue || "";
           }
         }
 
         if (
           !optionsApiOptions?.params?.paramName &&
           optionsApiOptions?.dependingContrllerName &&
-          dependentValue
+          memoizedDependentValue
         ) {
           const paramName = optionsApiOptions.dependingContrllerName.replace(
             /Id$/,
@@ -104,12 +133,18 @@ export const useSelectFromApiController = (
           const paramToCapitalize = paramName
             ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
             : "";
-          requestParams[`filterBy${paramToCapitalize}Id`] = dependentValue;
+          requestParams[`filterBy${paramToCapitalize}Id`] =
+            memoizedDependentValue;
         }
 
-        Object.assign(requestParams, params);
+        Object.assign(requestParams, paramsRef.current);
 
-        const response = await Axios.get(apiUrl, { params: requestParams });
+        const response = await Axios.get(apiUrlRef.current, {
+          params: requestParams,
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!isMountedRef.current) return;
 
         let transformedOptions;
         if (typeof transformResponse === "function") {
@@ -120,9 +155,11 @@ export const useSelectFromApiController = (
           transformedOptions = [];
         }
 
-        setOptions(transformedOptions);
-        hasFetchedRef.current = true;
-        prevDependentValueRef.current = dependentValue;
+        if (isMountedRef.current) {
+          setOptions(transformedOptions);
+          hasFetchedRef.current = true;
+          prevDependentValueRef.current = memoizedDependentValue;
+        }
 
         if (formContext && name) {
           try {
@@ -139,31 +176,34 @@ export const useSelectFromApiController = (
               formContext.setValue(name, null, { shouldValidate: true });
             }
           } catch (e) {
-            console.warn("Error validating current value:", e);
+            // Silently handle error
           }
         }
-      } catch (err) {
-        console.error("Error fetching options:", err);
-        setError(
-          err instanceof Error ? err : new Error("Failed to fetch options")
-        );
+      } catch (err: any) {
+        if (!isMountedRef.current) return;
 
-        if (props.options && props.options.length > 0) {
-          setOptions(props.options);
+        if (err.name !== "AbortError") {
+          setError(
+            err instanceof Error ? err : new Error("Failed to fetch options")
+          );
+
+          if (props.options && props.options.length > 0) {
+            setOptions(props.options);
+          }
         }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
+        fetchInProgressRef.current = false;
       }
     },
     [
-      apiUrl,
-      params,
+      memoizedDependentValue,
+      name,
+      optionsApiOptions,
       transformResponse,
       props.options,
-      dependentValue,
-      optionsApiOptions,
-      formContext,
-      name,
     ]
   );
 
@@ -174,17 +214,40 @@ export const useSelectFromApiController = (
   }, [fetchOptions]);
 
   useEffect(() => {
-    fetchOptions();
+    isMountedRef.current = true;
+
+    const timeoutId = setTimeout(() => {
+      fetchOptions();
+    }, 50);
+
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timeoutId);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   useEffect(() => {
     if (
       optionsApiOptions?.dependingContrllerName &&
-      dependentValue !== prevDependentValueRef.current
+      memoizedDependentValue !== prevDependentValueRef.current &&
+      !fetchInProgressRef.current
     ) {
-      fetchOptions(true);
+      const timeoutId = setTimeout(() => {
+        fetchOptions(true);
+      }, 50);
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
-  }, [dependentValue, fetchOptions, optionsApiOptions?.dependingContrllerName]);
+  }, [
+    memoizedDependentValue,
+    optionsApiOptions?.dependingContrllerName,
+    fetchOptions,
+  ]);
 
   return {
     ...baseSelect,

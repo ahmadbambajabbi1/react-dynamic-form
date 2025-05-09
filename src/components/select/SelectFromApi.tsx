@@ -15,8 +15,9 @@ export const SelectFromApi = (props: any) => {
     clearable = true,
     className = "",
     size = "md",
-    showError = true, // Add showError prop with default true
+    showError = true,
   } = props;
+
   const {
     selectedOption,
     isOpen,
@@ -31,22 +32,55 @@ export const SelectFromApi = (props: any) => {
     refresh,
   } = useSelectFromApiController(props);
 
-  // Add ref and position state for dropdown positioning
-  const triggerRef = useRef(null);
-  const [position, setPosition] = useState("bottom");
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
 
-  // Update dropdown position when opened
+  // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setPosition(
-        determineDropdownPosition(triggerRef.current, {
-          dropdownHeight: 250,
-          margin: 8,
-          preferredPosition: "bottom",
-        })
-      );
+      const rect = triggerRef.current.getBoundingClientRect();
+
+      const pos = determineDropdownPosition(triggerRef.current, {
+        dropdownHeight: 250,
+        margin: 8,
+        preferredPosition: "bottom",
+      });
+
+      setPosition(pos);
+
+      // Calculate the menu position
+      setMenuPosition({
+        top: pos === "bottom" ? rect.bottom : rect.top - 250,
+        left: rect.left,
+        width: rect.width,
+      });
     }
   }, [isOpen]);
+
+  // Handle clicks outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isOpen &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node) &&
+        menuProps.ref.current &&
+        !menuProps.ref.current.contains(event.target as Node)
+      ) {
+        toggleMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, toggleMenu]);
 
   // Size classes
   const sizeClasses = {
@@ -55,7 +89,6 @@ export const SelectFromApi = (props: any) => {
     lg: "h-12 text-lg",
   };
 
-  // Render the component
   return (
     <div className={`select-from-api-container w-full ${className}`}>
       {label && (
@@ -128,10 +161,14 @@ export const SelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            className={`
-              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
-            `}
+            style={{
+              position: "fixed",
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              width: `${menuPosition.width}px`,
+              zIndex: 9999,
+            }}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {loading ? (
               <div className="p-3 text-sm text-gray-500 text-center flex items-center justify-center">

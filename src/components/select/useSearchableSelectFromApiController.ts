@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   SearchableSelectFromApiProps,
   SearchableSelectFromApiControllerReturn,
@@ -25,35 +25,49 @@ export const useSearchableSelectFromApiController = (
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredOptions, setFilteredOptions] = useState<SelectOption[]>(
-    props.options || []
+    props?.options || []
   );
   const [loadingResults, setLoadingResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousSearchRef = useRef<string>("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevDependentValueRef = useRef<any>(undefined);
-
-  let formContext;
+  const isMountedRef = useRef(true);
+  const fetchInProgressRef = useRef(false);
+  let formContext = null;
   try {
     formContext = useFormContext();
-  } catch (e) {
-    formContext = null;
-  }
-
-  let dependentValue = undefined;
-  if (formContext && optionsApiOptions?.dependingContrllerName) {
-    try {
-      dependentValue = formContext.watch(
-        optionsApiOptions.dependingContrllerName
-      );
-    } catch (e) {
-      console.warn("Could not watch dependent field:", e);
+  } catch (e) {}
+  const dependentValue = useMemo(() => {
+    if (!formContext || !optionsApiOptions?.dependingContrllerName) {
+      return undefined;
     }
-  }
+    try {
+      return formContext.watch(optionsApiOptions.dependingContrllerName);
+    } catch (e) {
+      return undefined;
+    }
+  }, [formContext, optionsApiOptions?.dependingContrllerName]);
 
+  const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
+
+  const memoizedDependentValue = useMemo(
+    () => dependentValue,
+    [dependentValue]
+  );
+
+  const paramsRef = useRef(params);
+  useEffect(() => {
+    paramsRef.current = params;
+  }, [params]);
+
+  const apiUrlRef = useRef(apiUrl);
+  useEffect(() => {
+    apiUrlRef.current = apiUrl || (optionsApiOptions?.api as string);
+  }, [apiUrl]);
   const baseApiSelect = useSelectFromApiController({
     apiUrl,
-    params,
+    params: memoizedParams,
     transformResponse,
     optionsApiOptions,
     name,
@@ -63,6 +77,8 @@ export const useSearchableSelectFromApiController = (
 
   const searchOptions = useCallback(
     async (term: string) => {
+      if (!isMountedRef.current || fetchInProgressRef.current) return;
+
       if (term.length < minSearchLength || term === previousSearchRef.current) {
         if (term.length < minSearchLength) {
           setFilteredOptions(baseApiSelect.options);
@@ -73,7 +89,7 @@ export const useSearchableSelectFromApiController = (
 
       if (
         optionsApiOptions?.dependingContrllerName &&
-        !dependentValue &&
+        !memoizedDependentValue &&
         !optionsApiOptions.includeAll
       ) {
         setFilteredOptions([]);
@@ -82,6 +98,7 @@ export const useSearchableSelectFromApiController = (
 
       previousSearchRef.current = term;
       setLoadingResults(true);
+      fetchInProgressRef.current = true;
 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -101,18 +118,18 @@ export const useSearchableSelectFromApiController = (
           if (
             paramName &&
             optionsApiOptions?.dependingContrllerName &&
-            dependentValue
+            memoizedDependentValue
           ) {
-            requestParams[paramName] = dependentValue;
+            requestParams[paramName] = memoizedDependentValue;
           } else if (paramName) {
-            requestParams[paramName] = dependentValue || "";
+            requestParams[paramName] = memoizedDependentValue || "";
           }
         }
 
         if (
           !optionsApiOptions?.params?.paramName &&
           optionsApiOptions?.dependingContrllerName &&
-          dependentValue
+          memoizedDependentValue
         ) {
           const paramName = optionsApiOptions.dependingContrllerName.replace(
             /Id$/,
@@ -121,15 +138,18 @@ export const useSearchableSelectFromApiController = (
           const paramToCapitalize = paramName
             ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
             : "";
-          requestParams[`filterBy${paramToCapitalize}Id`] = dependentValue;
+          requestParams[`filterBy${paramToCapitalize}Id`] =
+            memoizedDependentValue;
         }
 
-        Object.assign(requestParams, params);
+        Object.assign(requestParams, paramsRef.current);
 
-        const response = await Axios.get(apiUrl, {
+        const response = await Axios.get(apiUrlRef.current, {
           params: requestParams,
           signal: abortControllerRef.current.signal,
         });
+
+        if (!isMountedRef.current) return;
 
         let searchResults;
         if (typeof transformResponse === "function") {
@@ -140,8 +160,10 @@ export const useSearchableSelectFromApiController = (
           searchResults = [];
         }
 
-        setFilteredOptions(searchResults);
-        prevDependentValueRef.current = dependentValue;
+        if (isMountedRef.current) {
+          setFilteredOptions(searchResults);
+          prevDependentValueRef.current = memoizedDependentValue;
+        }
 
         if (formContext && name) {
           try {
@@ -158,12 +180,13 @@ export const useSearchableSelectFromApiController = (
               formContext.setValue(name, null, { shouldValidate: true });
             }
           } catch (e) {
-            console.warn("Error validating current value:", e);
+            // Silently handle error
           }
         }
       } catch (err: any) {
+        if (!isMountedRef.current) return;
+
         if (err.name !== "AbortError") {
-          console.error("Error searching options:", err);
           setFilteredOptions(
             baseApiSelect.options.filter((option) =>
               option.label.toLowerCase().includes(term.toLowerCase())
@@ -171,22 +194,20 @@ export const useSearchableSelectFromApiController = (
           );
         }
       } finally {
-        if (abortControllerRef.current?.signal.aborted === false) {
+        if (isMountedRef.current) {
           setLoadingResults(false);
         }
+        fetchInProgressRef.current = false;
       }
     },
     [
-      apiUrl,
-      params,
-      searchParam,
-      transformResponse,
-      baseApiSelect.options,
       minSearchLength,
+      searchParam,
+      baseApiSelect.options,
+      memoizedDependentValue,
       optionsApiOptions,
-      dependentValue,
-      formContext,
       name,
+      transformResponse,
     ]
   );
 
@@ -215,7 +236,9 @@ export const useSearchableSelectFromApiController = (
   );
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
@@ -233,28 +256,49 @@ export const useSearchableSelectFromApiController = (
 
   useEffect(() => {
     if (
-      dependentValue !== prevDependentValueRef.current &&
-      searchTerm.length >= minSearchLength
+      memoizedDependentValue !== prevDependentValueRef.current &&
+      searchTerm.length >= minSearchLength &&
+      !fetchInProgressRef.current
     ) {
-      searchOptions(searchTerm);
-    }
-  }, [dependentValue, searchTerm, minSearchLength, searchOptions]);
-
-  const inputProps = {
-    ...baseApiSelect.inputProps,
-    value: baseApiSelect.isOpen
-      ? searchTerm
-      : baseApiSelect.selectedOption?.label || "",
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      handleSearchChange(e.target.value);
-      if (!baseApiSelect.isOpen) {
-        baseApiSelect.openMenu();
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
-    },
-    placeholder: baseApiSelect.isOpen
-      ? props.searchPlaceholder || "Search..."
-      : props.placeholder || "Select option",
-  };
+
+      prevDependentValueRef.current = memoizedDependentValue;
+
+      searchTimeoutRef.current = setTimeout(() => {
+        searchOptions(searchTerm);
+      }, 100);
+    }
+  }, [memoizedDependentValue, searchTerm, minSearchLength, searchOptions]);
+
+  const inputProps = useMemo(
+    () => ({
+      ...baseApiSelect.inputProps,
+      value: baseApiSelect.isOpen
+        ? searchTerm
+        : baseApiSelect.selectedOption?.label || "",
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleSearchChange(e.target.value);
+        if (!baseApiSelect.isOpen) {
+          baseApiSelect.openMenu();
+        }
+      },
+      placeholder: baseApiSelect.isOpen
+        ? props.searchPlaceholder || "Search..."
+        : props.placeholder || "Select option",
+    }),
+    [
+      baseApiSelect.inputProps,
+      baseApiSelect.isOpen,
+      baseApiSelect.selectedOption,
+      searchTerm,
+      handleSearchChange,
+      props.searchPlaceholder,
+      props.placeholder,
+      baseApiSelect.openMenu,
+    ]
+  );
 
   useEffect(() => {
     if (!baseApiSelect.isOpen) {

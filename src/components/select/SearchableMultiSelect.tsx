@@ -38,21 +38,34 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
     setSearchTerm,
   } = useSearchableMultiSelectController(props);
 
-  // Add ref for trigger element and input, and state for position
   const triggerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [position, setPosition] = useState<"top" | "bottom">("bottom");
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
 
   // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setPosition(
-        determineDropdownPosition(triggerRef.current, {
-          dropdownHeight: 250,
-          margin: 8,
-          preferredPosition: "bottom",
-        })
-      );
+      const rect = triggerRef.current.getBoundingClientRect();
+
+      const pos = determineDropdownPosition(triggerRef.current, {
+        dropdownHeight: 250,
+        margin: 8,
+        preferredPosition: "bottom",
+      });
+
+      setPosition(pos);
+
+      // Calculate the menu position
+      setMenuPosition({
+        top: pos === "bottom" ? rect.bottom : rect.top - 250,
+        left: rect.left,
+        width: rect.width,
+      });
     }
   }, [isOpen]);
 
@@ -62,6 +75,26 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
       searchInputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Handle clicks outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isOpen &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node) &&
+        menuProps.ref.current &&
+        !menuProps.ref.current.contains(event.target as Node)
+      ) {
+        toggleMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, toggleMenu]);
 
   // Size classes
   const sizeClasses = {
@@ -73,7 +106,6 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
   // Extract all properties from inputProps except 'ref' to avoid conflicts
   const { ref: _inputRef, ...otherInputProps } = inputProps;
 
-  // Render the component
   return (
     <div className={`searchable-multi-select-container w-full ${className}`}>
       {label && (
@@ -166,7 +198,6 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
           </div>
         </div>
 
-        {/* Only show error if showError prop is true */}
         {showError && error && (
           <p className="mt-1 text-sm text-red-500">{error}</p>
         )}
@@ -174,10 +205,14 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            className={`
-              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
-            `}
+            style={{
+              position: "fixed",
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              width: `${menuPosition.width}px`,
+              zIndex: 9999,
+            }}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {filteredOptions.length === 0 ? (
               <div className="p-3 text-sm text-gray-500 text-center">

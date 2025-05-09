@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from "react";
 import { useSearchableMultiSelectFromApiController } from "./useSearchableMultiSelectFromApiController";
 import { determineDropdownPosition } from "../../utils/dropdown";
 
-// Import icons
 import { XIcon } from "../../icons/XIcon";
 import { ChevronDown } from "../../icons/ChevronDown";
 import { CheckIcon } from "../../icons/CheckIcon";
@@ -41,20 +40,34 @@ export const SearchableMultiSelectFromApi = (props: any) => {
     error: apiError,
   } = useSearchableMultiSelectFromApiController(props);
 
-  const triggerRef = useRef(null);
-  const searchInputRef = useRef(null);
-  const [position, setPosition] = useState("bottom");
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
 
   // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setPosition(
-        determineDropdownPosition(triggerRef.current, {
-          dropdownHeight: 250,
-          margin: 8,
-          preferredPosition: "bottom",
-        })
-      );
+      const rect = triggerRef.current.getBoundingClientRect();
+
+      const pos = determineDropdownPosition(triggerRef.current, {
+        dropdownHeight: 250,
+        margin: 8,
+        preferredPosition: "bottom",
+      });
+
+      setPosition(pos);
+
+      // Calculate the menu position
+      setMenuPosition({
+        top: pos === "bottom" ? rect.bottom : rect.top - 250,
+        left: rect.left,
+        width: rect.width,
+      });
     }
   }, [isOpen]);
 
@@ -65,6 +78,26 @@ export const SearchableMultiSelectFromApi = (props: any) => {
     }
   }, [isOpen]);
 
+  // Handle clicks outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isOpen &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node) &&
+        menuProps.ref.current &&
+        !menuProps.ref.current.contains(event.target as Node)
+      ) {
+        toggleMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, toggleMenu]);
+
   // Size variants
   const sizeClasses = {
     sm: "h-8 text-sm",
@@ -74,7 +107,7 @@ export const SearchableMultiSelectFromApi = (props: any) => {
 
   // Create a container for selected options
   const SelectedItemsContainer = () => {
-    if (!isOpen && selectedOptions.length === 0) {
+    if (!isOpen && selectedOptions?.length === 0) {
       return (
         <div className="flex-grow text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
           {placeholder}
@@ -98,7 +131,7 @@ export const SearchableMultiSelectFromApi = (props: any) => {
 
     return (
       <div className="flex flex-wrap gap-1 flex-grow overflow-hidden">
-        {selectedOptions.map((option) => (
+        {selectedOptions?.map((option) => (
           <div
             key={option.value.toString()}
             className="bg-blue-100 text-blue-800 rounded-md px-2 py-0.5 flex items-center gap-1 text-sm"
@@ -124,7 +157,6 @@ export const SearchableMultiSelectFromApi = (props: any) => {
 
   return (
     <div className={`searchable-multi-select-container w-full ${className}`}>
-      {/* Only render the label if it's provided */}
       {label && (
         <label className="block text-sm font-medium mb-1">
           {label}
@@ -156,7 +188,7 @@ export const SearchableMultiSelectFromApi = (props: any) => {
               <Spinner className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                {selectedOptions.length > 0 &&
+                {selectedOptions?.length > 0 &&
                   clearable &&
                   !disabled &&
                   !isOpen && (
@@ -180,11 +212,9 @@ export const SearchableMultiSelectFromApi = (props: any) => {
             )}
           </div>
 
-          {/* Hidden input for form control */}
           <input type="hidden" className="sr-only" {...inputProps} />
         </div>
 
-        {/* Only show error if showError prop is true */}
         {showError && (error || apiError) && (
           <p className="mt-1 text-sm text-red-500">
             {error || apiError?.message}
@@ -194,25 +224,29 @@ export const SearchableMultiSelectFromApi = (props: any) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            className={`
-              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
-            `}
+            style={{
+              position: "fixed",
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              width: `${menuPosition.width}px`,
+              zIndex: 9999,
+            }}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {loadingResults ? (
               <div className="p-4 text-center text-gray-500">
                 <Spinner className="h-5 w-5 mx-auto mb-2 animate-spin" />
                 <p>Searching...</p>
               </div>
-            ) : filteredOptions.length === 0 ? (
+            ) : filteredOptions?.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
-                {searchTerm.length > 0
+                {searchTerm?.length > 0
                   ? "No results found"
                   : "No options available"}
               </div>
             ) : (
               <div className="py-1">
-                {filteredOptions.map((option) => (
+                {filteredOptions?.map((option) => (
                   <div
                     key={option.value.toString()}
                     className={`

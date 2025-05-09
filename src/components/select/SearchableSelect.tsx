@@ -30,24 +30,67 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
     inputProps,
     filteredOptions,
     searchTerm,
+    setSearchTerm,
   } = useSearchableSelectController(props);
 
   // Add ref for trigger element and state for position
   const triggerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [position, setPosition] = useState<"top" | "bottom">("bottom");
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
 
   // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      setPosition(
-        determineDropdownPosition(triggerRef.current, {
-          dropdownHeight: 250,
-          margin: 8,
-          preferredPosition: "bottom",
-        })
-      );
+      const rect = triggerRef.current.getBoundingClientRect();
+
+      const pos = determineDropdownPosition(triggerRef.current, {
+        dropdownHeight: 250,
+        margin: 8,
+        preferredPosition: "bottom",
+      });
+
+      setPosition(pos);
+
+      // Calculate the menu position
+      setMenuPosition({
+        top: pos === "bottom" ? rect.bottom : rect.top - 250,
+        left: rect.left,
+        width: rect.width,
+      });
     }
   }, [isOpen]);
+
+  // Focus search input when dropdown is opened
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Handle clicks outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isOpen &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node) &&
+        menuProps.ref.current &&
+        !menuProps.ref.current.contains(event.target as Node)
+      ) {
+        toggleMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, toggleMenu]);
 
   // Size classes
   const sizeClasses = {
@@ -56,7 +99,9 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
     lg: "h-12 text-lg",
   };
 
-  // Render the component
+  // Extract all properties from inputProps except 'ref' to avoid conflicts
+  const { ref: _inputRef, ...otherInputProps } = inputProps;
+
   return (
     <div className={`searchable-select-container w-full ${className}`}>
       {label && (
@@ -83,11 +128,18 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
           onClick={() => !disabled && !isOpen && toggleMenu()}
         >
           <input
-            {...inputProps}
+            ref={searchInputRef}
+            {...otherInputProps}
             className="block w-full h-full outline-none bg-transparent"
             placeholder={isOpen ? searchPlaceholder : placeholder}
             readOnly={!isOpen}
             disabled={disabled}
+            value={isOpen ? searchTerm : otherInputProps.value}
+            onChange={(e) => {
+              if (isOpen) {
+                setSearchTerm(e.target.value);
+              }
+            }}
           />
 
           <div className="flex items-center ml-2">
@@ -113,7 +165,6 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
           </div>
         </div>
 
-        {/* Only show error if showError prop is true */}
         {showError && error && (
           <p className="mt-1 text-sm text-red-500">{error}</p>
         )}
@@ -121,10 +172,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
         {isOpen && !disabled && (
           <div
             ref={menuProps.ref}
-            className={`
-              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
-            `}
+            style={{
+              position: "fixed",
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              width: `${menuPosition.width}px`,
+              zIndex: 9999,
+            }}
+            className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
           >
             {filteredOptions.length === 0 ? (
               <div className="p-3 text-sm text-gray-500 text-center">

@@ -23,6 +23,26 @@ export const useSearchableMultiSelectFromApiController = (
     ...multiSelectProps
   } = props;
 
+  // Move hook calls to the top level
+  let formContext = null;
+  try {
+    formContext = name ? useFormContext() : null;
+  } catch (e) {
+    // Form context not available
+  }
+
+  // Calculate dependent value at the top level
+  let dependentValue = undefined;
+  if (formContext && optionsApiOptions?.dependingContrllerName) {
+    try {
+      dependentValue = formContext.watch(
+        optionsApiOptions.dependingContrllerName
+      );
+    } catch (e) {
+      dependentValue = undefined;
+    }
+  }
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredOptions, setFilteredOptions] = useState<SelectOption[]>(
     props.options || []
@@ -32,24 +52,7 @@ export const useSearchableMultiSelectFromApiController = (
   const previousSearchRef = useRef<string>("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevDependentValueRef = useRef<any>(undefined);
-
-  let formContext;
-  try {
-    formContext = useFormContext();
-  } catch (e) {
-    formContext = null;
-  }
-
-  let dependentValue = undefined;
-  if (formContext && optionsApiOptions?.dependingContrllerName) {
-    try {
-      dependentValue = formContext.watch(
-        optionsApiOptions.dependingContrllerName
-      );
-    } catch (e) {
-      console.warn("Could not watch dependent field:", e);
-    }
-  }
+  const isMountedRef = useRef(true);
 
   const baseApiMultiSelect = useMultiSelectFromApiController({
     apiUrl,
@@ -63,6 +66,8 @@ export const useSearchableMultiSelectFromApiController = (
 
   const searchOptions = useCallback(
     async (term: string) => {
+      if (!isMountedRef.current) return;
+
       if (term.length < minSearchLength || term === previousSearchRef.current) {
         if (term.length < minSearchLength) {
           setFilteredOptions(baseApiMultiSelect.options);
@@ -131,6 +136,8 @@ export const useSearchableMultiSelectFromApiController = (
           signal: abortControllerRef.current.signal,
         });
 
+        if (!isMountedRef.current) return;
+
         let searchResults;
         if (typeof transformResponse === "function") {
           searchResults = transformResponse(response.data.data);
@@ -159,12 +166,13 @@ export const useSearchableMultiSelectFromApiController = (
               }
             }
           } catch (e) {
-            console.warn("Error validating current values:", e);
+            // Handle error silently
           }
         }
       } catch (err: any) {
+        if (!isMountedRef.current) return;
+
         if (err.name !== "AbortError") {
-          console.error("Error searching options:", err);
           setFilteredOptions(
             baseApiMultiSelect.options.filter((option) =>
               option.label.toLowerCase().includes(term.toLowerCase())
@@ -172,7 +180,10 @@ export const useSearchableMultiSelectFromApiController = (
           );
         }
       } finally {
-        if (abortControllerRef.current?.signal.aborted === false) {
+        if (
+          isMountedRef.current &&
+          abortControllerRef.current?.signal.aborted === false
+        ) {
           setLoadingResults(false);
         }
       }
@@ -181,13 +192,13 @@ export const useSearchableMultiSelectFromApiController = (
       apiUrl,
       params,
       searchParam,
-      transformResponse,
       baseApiMultiSelect.options,
       minSearchLength,
-      optionsApiOptions,
       dependentValue,
-      formContext,
       name,
+      formContext,
+      optionsApiOptions,
+      transformResponse,
     ]
   );
 
@@ -216,7 +227,9 @@ export const useSearchableMultiSelectFromApiController = (
   );
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
@@ -237,7 +250,12 @@ export const useSearchableMultiSelectFromApiController = (
       dependentValue !== prevDependentValueRef.current &&
       searchTerm.length >= minSearchLength
     ) {
-      searchOptions(searchTerm);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      searchTimeoutRef.current = setTimeout(() => {
+        searchOptions(searchTerm);
+      }, 100);
     }
   }, [dependentValue, searchTerm, minSearchLength, searchOptions]);
 

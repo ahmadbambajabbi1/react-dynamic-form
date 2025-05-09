@@ -34,10 +34,17 @@ export const Select: React.FC<SelectProps> = (props) => {
 
   const triggerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<"top" | "bottom">("bottom");
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
 
-  // Update dropdown position when it's opened, using the utility function
+  // Update dropdown position when it's opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+
       setPosition(
         determineDropdownPosition(triggerRef.current, {
           dropdownHeight: 250,
@@ -45,8 +52,15 @@ export const Select: React.FC<SelectProps> = (props) => {
           preferredPosition: "bottom",
         })
       );
+
+      // Calculate the menu position
+      setMenuPosition({
+        top: position === "bottom" ? rect.bottom : rect.top - 250, // Approximate dropdown height
+        left: rect.left,
+        width: rect.width,
+      });
     }
-  }, [isOpen]);
+  }, [isOpen, position]);
 
   // Size variants
   const sizeClasses = {
@@ -54,6 +68,26 @@ export const Select: React.FC<SelectProps> = (props) => {
     md: "h-10 text-base",
     lg: "h-12 text-lg",
   };
+
+  // Handle clicks outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isOpen &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node) &&
+        menuProps.ref.current &&
+        !menuProps.ref.current.contains(event.target as Node)
+      ) {
+        toggleMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, toggleMenu]);
 
   return (
     <div className={`select-container w-full ${className}`}>
@@ -117,45 +151,49 @@ export const Select: React.FC<SelectProps> = (props) => {
         {showError && error && (
           <p className="mt-1 text-sm text-red-500">{error}</p>
         )}
-
-        {isOpen && !disabled && (
-          <div
-            ref={menuProps.ref}
-            className={`
-              absolute z-10 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto
-              ${position === "top" ? "bottom-full mb-1" : "top-full mt-1"}
-            `}
-          >
-            {options.length === 0 ? (
-              <div className="p-2 text-gray-500 text-center">
-                No options available
-              </div>
-            ) : (
-              <div className="py-1">
-                {options.map((option) => (
-                  <div
-                    key={option.value as string}
-                    className={`
-                      flex items-center px-3 py-2 cursor-pointer
-                      ${
-                        selectedOption?.value === option.value
-                          ? "bg-blue-50 text-blue-700"
-                          : "hover:bg-gray-50"
-                      }
-                    `}
-                    onClick={() => selectOption(option)}
-                  >
-                    <span>{option.label}</span>
-                    {selectedOption?.value === option.value && (
-                      <CheckIcon className="h-4 w-4 ml-auto text-blue-600" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {isOpen && !disabled && (
+        <div
+          ref={menuProps.ref}
+          style={{
+            position: "fixed",
+            top: `${menuPosition.top}px`,
+            left: `${menuPosition.left}px`,
+            width: `${menuPosition.width}px`,
+            zIndex: 9999,
+          }}
+          className="bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto"
+        >
+          {options.length === 0 ? (
+            <div className="p-2 text-gray-500 text-center">
+              No options available
+            </div>
+          ) : (
+            <div className="py-1">
+              {options.map((option) => (
+                <div
+                  key={option.value as string}
+                  className={`
+                    flex items-center px-3 py-2 cursor-pointer
+                    ${
+                      selectedOption?.value === option.value
+                        ? "bg-blue-50 text-blue-700"
+                        : "hover:bg-gray-50"
+                    }
+                  `}
+                  onClick={() => selectOption(option)}
+                >
+                  <span>{option.label}</span>
+                  {selectedOption?.value === option.value && (
+                    <CheckIcon className="h-4 w-4 ml-auto text-blue-600" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

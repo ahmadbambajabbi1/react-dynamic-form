@@ -1,7 +1,5 @@
-// src/utils/axiosConfig.ts
 import axios from "axios";
 
-// Default configuration
 let userConfig: any = {
   api: {
     baseURL: "",
@@ -10,29 +8,24 @@ let userConfig: any = {
   },
 };
 
-// Default fallback session getter
 let getSession: () => Promise<{ accessToken?: string }> = async () => ({
   accessToken: undefined,
 });
 
-// Function to load configuration from files (only in Node environment)
+let hasInitialized = false;
+
 const loadConfigFromFs = () => {
   if (typeof window === "undefined" && typeof require !== "undefined") {
     try {
-      // Dynamically import fs module (only works in Node.js)
       const fs = require("fs");
       const path = require("path");
 
-      // Try to read from the root directory first
       const configPath = path.resolve(process.cwd(), "form.config.json");
       if (fs.existsSync(configPath)) {
         const configContent = fs.readFileSync(configPath, "utf8");
-        const config = JSON.parse(configContent);
-        console.log("Loaded configuration from root directory");
-        return config;
+        return JSON.parse(configContent);
       }
 
-      // If not found in root, try src directory
       const srcConfigPath = path.resolve(
         process.cwd(),
         "src",
@@ -40,81 +33,86 @@ const loadConfigFromFs = () => {
       );
       if (fs.existsSync(srcConfigPath)) {
         const configContent = fs.readFileSync(srcConfigPath, "utf8");
-        const config = JSON.parse(configContent);
-        console.log("Loaded configuration from src directory");
-        return config;
+        return JSON.parse(configContent);
       }
-
-      console.warn(
-        "Configuration file not found. Using default configuration."
-      );
     } catch (error) {
-      console.error("Error loading configuration:", error);
+      // Silent error
     }
   }
 
-  return userConfig;
+  return null;
 };
 
-// Function to load session handler (only in Node environment)
 const loadSessionHandlerFromFs = () => {
   if (typeof window === "undefined" && typeof require !== "undefined") {
     try {
-      // Dynamically import fs module (only works in Node.js)
       const fs = require("fs");
       const path = require("path");
 
-      // Try to load from services/session
-      const sessionPath = path.resolve(process.cwd(), "services", "session.js");
-      if (fs.existsSync(sessionPath)) {
-        const sessionModule = require(sessionPath);
-        if (sessionModule.getSession) {
-          console.log("Loaded session handler from services directory");
-          return sessionModule.getSession;
+      const tryLoadSession = (sessionPath: string) => {
+        if (fs.existsSync(sessionPath)) {
+          try {
+            const sessionModule = require(sessionPath);
+            console.log({ sessionModule, sessionPath });
+            if (typeof sessionModule.getSession === "function") {
+              return sessionModule.getSession;
+            }
+          } catch (e) {
+            // Silent error
+          }
         }
-      }
+        return null;
+      };
 
-      // Try from src/services/session
-      const srcSessionPath = path.resolve(
-        process.cwd(),
-        "src",
-        "services",
-        "session.js"
-      );
-      if (fs.existsSync(srcSessionPath)) {
-        const sessionModule = require(srcSessionPath);
-        if (sessionModule.getSession) {
-          console.log("Loaded session handler from src/services directory");
-          return sessionModule.getSession;
-        }
-      }
+      const paths = [
+        path.resolve(process.cwd(), "services", "session.js"),
+        path.resolve(process.cwd(), "services", "session.ts"),
+        path.resolve(process.cwd(), "src", "services", "session.js"),
+        path.resolve(process.cwd(), "src", "services", "session.ts"),
+      ];
 
-      console.warn("Session module not found. Using default session handler.");
+      for (const path of paths) {
+        const sessionFn = tryLoadSession(path);
+        console.log({ sessionFn });
+        if (sessionFn) return sessionFn;
+      }
     } catch (error) {
-      console.error("Error loading session handler:", error);
+      // Silent error
     }
   }
 
-  return getSession;
+  return null;
 };
 
-// Try to load configuration and session handler at startup
-try {
-  // Only run in Node.js environment (during build/server-side rendering)
-  const loadedConfig = loadConfigFromFs();
-  if (loadedConfig) {
-    userConfig = loadedConfig;
-  }
+const initialize = () => {
+  if (hasInitialized) return;
 
-  const loadedSessionHandler = loadSessionHandlerFromFs();
-  if (loadedSessionHandler) {
-    getSession = loadedSessionHandler;
-  }
-} catch (error) {
-  console.error("Error initializing axiosConfig:", error);
-}
+  try {
+    const loadedConfig = loadConfigFromFs();
+    if (loadedConfig) {
+      userConfig = loadedConfig;
+    }
 
-// Expose initConfig
+    const loadedSessionHandler = loadSessionHandlerFromFs();
+    if (loadedSessionHandler) {
+      getSession = loadedSessionHandler;
+    }
+
+    Axios.defaults.baseURL = userConfig.api?.baseURL || "";
+    Axios.defaults.headers = {
+      ...(userConfig.api?.headers?.["Content-Type"]
+        ? {}
+        : { "Content-Type": "application/json" }),
+      ...(userConfig.api?.headers || {}),
+    };
+    Axios.defaults.timeout = userConfig.api?.timeout || 30000;
+
+    hasInitialized = true;
+  } catch (error) {
+    // Silent error
+  }
+};
+
 export const initConfig = (
   config: any,
   sessionFn?: () => Promise<{ accessToken?: string }>
@@ -125,9 +123,6 @@ export const initConfig = (
     getSession = sessionFn;
   }
 
-  console.log({ sessionFn, userConfig });
-
-  // Update Axios instance with new config
   Axios.defaults.baseURL = userConfig.api?.baseURL || "";
   Axios.defaults.headers = {
     ...(userConfig.api?.headers?.["Content-Type"]
@@ -136,12 +131,14 @@ export const initConfig = (
     ...(userConfig.api?.headers || {}),
   };
   Axios.defaults.timeout = userConfig.api?.timeout || 30000;
+
+  hasInitialized = true;
 };
 
-// Create Axios instance
 const Axios = axios.create();
 
-// Attach session token interceptor
+initialize();
+
 Axios.interceptors.request.use(
   async (config) => {
     try {
@@ -150,7 +147,7 @@ Axios.interceptors.request.use(
         config.headers.Authorization = `Bearer ${session.accessToken}`;
       }
     } catch (error) {
-      console.warn("Error fetching session token:", error);
+      // Silent error
     }
     return config;
   },

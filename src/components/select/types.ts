@@ -36,6 +36,8 @@ export interface SelectControllerProps extends BaseSelectProps {
 
 // Updated with dependent controller support
 export interface ApiOptions {
+  api?: string;
+  method?: string;
   dependingContrllerName?: string;
   params?: Record<string, any>;
   includeAll?: boolean;

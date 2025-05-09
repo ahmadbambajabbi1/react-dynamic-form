@@ -17,7 +17,7 @@ export const SearchableSelectFromApi = (props: any) => {
     className = "",
     size = "md",
     noResultsMessage = "No results found",
-    showError = true, // Add showError prop with default true
+    showError = true,
   } = props;
 
   const {
@@ -28,19 +28,18 @@ export const SearchableSelectFromApi = (props: any) => {
     clearSelection,
     menuProps,
     inputProps,
-    filteredOptions,
-    searchTerm,
+    filteredOptions = [], // Add default empty array here
+    searchTerm = "", // Add default empty string here
     loading,
     loadingResults,
     error: apiError,
     refresh,
   } = useSearchableSelectFromApiController(props);
 
-  // Add ref and position state for dropdown positioning
   const triggerRef = useRef(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [position, setPosition] = useState("bottom");
 
-  // Update dropdown position when opened
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       setPosition(
@@ -53,6 +52,21 @@ export const SearchableSelectFromApi = (props: any) => {
     }
   }, [isOpen]);
 
+  // Focus search input when dropdown is opened
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Extract ref from inputProps to avoid duplicate ref error
+  const { ref: _, ...otherInputProps } = inputProps || {}; // Add default empty object
+
+  // Ensure filteredOptions is always an array
+  const safeFilteredOptions = Array.isArray(filteredOptions)
+    ? filteredOptions
+    : [];
+
   // Size classes
   const sizeClasses = {
     sm: "h-8 text-sm",
@@ -60,7 +74,6 @@ export const SearchableSelectFromApi = (props: any) => {
     lg: "h-12 text-lg",
   };
 
-  // Render the component
   return (
     <div className={`searchable-select-from-api-container w-full ${className}`}>
       {label && (
@@ -87,7 +100,8 @@ export const SearchableSelectFromApi = (props: any) => {
           onClick={() => !disabled && !isOpen && toggleMenu()}
         >
           <input
-            {...inputProps}
+            ref={searchInputRef}
+            {...otherInputProps}
             className="block w-full h-full outline-none bg-transparent"
             placeholder={isOpen ? searchPlaceholder : placeholder}
             readOnly={!isOpen}
@@ -123,7 +137,6 @@ export const SearchableSelectFromApi = (props: any) => {
           </div>
         </div>
 
-        {/* Only show error if showError prop is true */}
         {showError && (error || apiError) && (
           <p className="mt-1 text-sm text-red-500">
             {error || apiError?.message}
@@ -163,16 +176,19 @@ export const SearchableSelectFromApi = (props: any) => {
                   Try again
                 </button>
               </div>
-            ) : filteredOptions.length === 0 ? (
+            ) : safeFilteredOptions.length === 0 ? ( // Use safeFilteredOptions here
               <div className="p-3 text-sm text-gray-500 text-center">
                 {searchTerm ? noResultsMessage : "No options available"}
               </div>
             ) : (
               <ul className="py-1">
-                {filteredOptions.map((option) => (
-                  <li
-                    key={option.value}
-                    className={`
+                {safeFilteredOptions.map(
+                  (
+                    option // Use safeFilteredOptions here
+                  ) => (
+                    <li
+                      key={option.value}
+                      className={`
                       px-3 py-2 cursor-pointer text-sm hover:bg-gray-100
                       ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}
                       ${
@@ -181,16 +197,17 @@ export const SearchableSelectFromApi = (props: any) => {
                           : "text-gray-700"
                       }
                     `}
-                    onClick={() => !option.disabled && selectOption(option)}
-                  >
-                    <div className="flex items-center">
-                      {option.icon && (
-                        <span className="mr-2">{option.icon}</span>
-                      )}
-                      {option.label}
-                    </div>
-                  </li>
-                ))}
+                      onClick={() => !option.disabled && selectOption(option)}
+                    >
+                      <div className="flex items-center">
+                        {option.icon && (
+                          <span className="mr-2">{option.icon}</span>
+                        )}
+                        {option.label}
+                      </div>
+                    </li>
+                  )
+                )}
               </ul>
             )}
           </div>
