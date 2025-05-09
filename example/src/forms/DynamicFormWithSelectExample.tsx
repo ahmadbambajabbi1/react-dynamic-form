@@ -577,8 +577,9 @@ const DynamicFormExample = () => {
       placeholder: "Select department",
       required: true,
       colSpan: 6,
-      apiUrl: "http://localhost:1993/test/see/s",
+      apiUrl: "http://localhost:1993/test/see/s/s/s",
       optionsApiOptions: {
+        dependingContrllerName: "country",
         params: {
           sortBy: "name",
         },

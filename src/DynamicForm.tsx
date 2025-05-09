@@ -21,7 +21,6 @@ import { ToastProvider, useToast } from "./contexts/toast-context";
 const VERIFICATION_DATA_LOCASTORAGE_NAME = "verification_data";
 const VERIFICATION_VERIFY_NAME = "verification_status";
 
-// Inner component that uses toast hook
 const DynamicFormInner = <T extends z.ZodType<any, any>>({
   controllers,
   formSchema,
@@ -235,47 +234,10 @@ const DynamicFormInner = <T extends z.ZodType<any, any>>({
 
         {modal.open && modalComponenet && modalComponenet(modal, setModal)}
       </form>
-
-      {/* Test toast buttons */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() =>
-            toast.success(
-              "Success message example Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sapiente et voluptatibus consequuntur. Quidem obcaecati dolor molestiae amet ullam quis molestias velit magnam autem veniam, tenetur in neque voluptatibus eos eaque. Lorem ipsum dolor sit amet consectetur adipisicing elit. Placeat quas exercitationem deserunt voluptatem a, sed fuga officiis doloremque aliquid soluta praesentium totam aliquam, minus excepturi enim voluptatum fugiat veniam sint quae tempore repellendus nam explicabo eum. Illo amet consectetur, a voluptatem laudantium voluptatibus quas distinctio facere quam doloribus eaque laborum cupiditate ut quos, tenetur qui nesciunt. Aut dolore, nisi labore repellendus provident itaque accusamus perferendis nihil, tempora nulla saepe hic. Exercitationem laudantium debitis dolorum laboriosam quas accusantium, nesciunt odio ipsam, dolor aut qui, et fugiat ipsa quia earum excepturi mollitia consequuntur itaque. Exercitationem sunt, eligendi eaque dolorem quia illo temporibus."
-            )
-          }
-          className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
-        >
-          Test Success
-        </button>
-        <button
-          type="button"
-          onClick={() => toast.error("Error message example")}
-          className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
-        >
-          Test Error
-        </button>
-        <button
-          type="button"
-          onClick={() => toast.warning("Warning message example")}
-          className="px-3 py-1 bg-amber-500 text-white rounded text-sm hover:bg-amber-600 transition-colors"
-        >
-          Test Warning
-        </button>
-        <button
-          type="button"
-          onClick={() => toast.info("Info message example")}
-          className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
-        >
-          Test Info
-        </button>
-      </div>
     </FormProvider>
   );
 };
 
-// Wrapper component that provides ToastProvider
 const DynamicForm = <T extends z.ZodType<any, any>>(
   props: DynamicFormProps<T>
 ) => {

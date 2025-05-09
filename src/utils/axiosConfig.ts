@@ -53,7 +53,6 @@ const loadSessionHandlerFromFs = () => {
         if (fs.existsSync(sessionPath)) {
           try {
             const sessionModule = require(sessionPath);
-            console.log({ sessionModule, sessionPath });
             if (typeof sessionModule.getSession === "function") {
               return sessionModule.getSession;
             }
@@ -73,7 +72,6 @@ const loadSessionHandlerFromFs = () => {
 
       for (const path of paths) {
         const sessionFn = tryLoadSession(path);
-        console.log({ sessionFn });
         if (sessionFn) return sessionFn;
       }
     } catch (error) {

@@ -1,4 +1,3 @@
-// src/contexts/toast-context.tsx
 import React, {
   createContext,
   useContext,
@@ -8,17 +7,14 @@ import React, {
 } from "react";
 import { cn } from "../utils";
 
-// Toast types
 export type ToastType = "success" | "error" | "warning" | "info";
 
-// Toast interface
 interface ToastItem {
   id: string;
   message: string;
   type: ToastType;
 }
 
-// Context interface
 interface ToastContextType {
   success: (message: string) => void;
   error: (message: string) => void;
