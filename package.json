@@ -1,6 +1,6 @@
 {
   "name": "z-react-dynamic-form",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "type": "module",
   "description": "A dynamic form builder for React applications with various input types and validation",
   "main": "dist/index.js",
