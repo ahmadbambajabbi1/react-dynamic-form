@@ -59,7 +59,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
 
       return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -84,7 +84,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, toggleMenu]);
 
   const sizeClasses = {
     sm: "h-8 text-sm",
@@ -117,7 +117,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
                 : "bg-white hover:border-gray-400"
             }
           `}
-          onClick={() => !disabled && !isOpen && toggleMenu()}
+          onClick={() => !disabled && toggleMenu()}
         >
           <input
             ref={searchInputRef}
@@ -135,13 +135,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = (props) => {
           />
 
           <div className="flex items-center ml-2">
-            {selectedOption && clearable && !isOpen && (
+            {selectedOption && clearable && (
               <button
                 type="button"
                 className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
                 onClick={(e) => {
                   e.stopPropagation();
                   clearSelection();
+                  toggleMenu();
                 }}
               >
                 <XIcon />

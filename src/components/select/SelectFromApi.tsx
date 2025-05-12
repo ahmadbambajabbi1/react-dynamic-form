@@ -57,7 +57,7 @@ export const SelectFromApi = (props: any) => {
 
       return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   const sizeClasses = {
     sm: "h-8 text-sm",

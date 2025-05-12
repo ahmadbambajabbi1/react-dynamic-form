@@ -62,7 +62,7 @@ export const useMultiSelectController = (
     } else {
       openMenu();
     }
-  }, [isOpen]);
+  }, [isOpen, openMenu, closeMenu]);
 
   const selectOption = useCallback(
     (option: SelectOption) => {

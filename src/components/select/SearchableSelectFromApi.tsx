@@ -62,13 +62,13 @@ export const SearchableSelectFromApi = (props: any) => {
 
       return cleanup;
     }
-  }, [initPositioning]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
-  }, []);
+  }, [isOpen]);
 
   const { ref: _, ...otherInputProps } = inputProps || {};
 

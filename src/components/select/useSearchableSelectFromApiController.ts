@@ -298,6 +298,7 @@ export const useSearchableSelectFromApiController = (
     }),
     [
       baseApiSelect.inputProps,
+      baseApiSelect.isOpen,
       baseApiSelect.selectedOption,
       searchTerm,
       props.searchPlaceholder,
@@ -310,7 +311,7 @@ export const useSearchableSelectFromApiController = (
       setSearchTerm("");
       setFilteredOptions(baseApiSelect.options);
     }
-  }, [baseApiSelect.options]);
+  }, [baseApiSelect.isOpen, baseApiSelect.options]);
 
   return {
     ...baseApiSelect,

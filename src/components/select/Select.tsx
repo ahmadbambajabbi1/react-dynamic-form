@@ -56,7 +56,7 @@ export const Select: React.FC<SelectProps> = (props) => {
 
       return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -75,7 +75,7 @@ export const Select: React.FC<SelectProps> = (props) => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, toggleMenu]);
 
   const sizeClasses = {
     sm: "h-8 text-sm",

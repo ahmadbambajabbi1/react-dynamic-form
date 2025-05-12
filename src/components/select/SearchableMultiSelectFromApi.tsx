@@ -66,7 +66,7 @@ export const SearchableMultiSelectFromApi = (props: any) => {
 
       return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -91,7 +91,7 @@ export const SearchableMultiSelectFromApi = (props: any) => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, toggleMenu]);
 
   const sizeClasses = {
     sm: "h-8 text-sm",

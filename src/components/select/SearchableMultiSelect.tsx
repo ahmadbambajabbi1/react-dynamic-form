@@ -64,7 +64,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
 
       return cleanup;
     }
-  }, [isOpen]);
+  }, [isOpen, initPositioning]);
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -78,8 +78,8 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
         isOpen &&
         triggerRef.current &&
         !triggerRef.current.contains(event.target as Node) &&
-        menuProps.ref.current &&
-        !menuProps.ref.current.contains(event.target as Node)
+        menuRef.current && // Use menuRef here
+        !menuRef.current.contains(event.target as Node)
       ) {
         toggleMenu();
       }
@@ -89,7 +89,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, toggleMenu]);
 
   const sizeClasses = {
     sm: "h-8 text-sm",
@@ -122,7 +122,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
                 : "bg-white hover:border-gray-400"
             }
           `}
-          onClick={() => !disabled && !isOpen && toggleMenu()}
+          onClick={() => !disabled && toggleMenu()}
         >
           {selectedOptions.length > 0 && !isOpen ? (
             <div className="flex flex-wrap gap-1 py-1 max-w-full overflow-hidden">
