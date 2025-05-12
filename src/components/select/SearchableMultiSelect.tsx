@@ -64,7 +64,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
 
       return cleanup;
     }
-  }, [isOpen, initPositioning]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -89,7 +89,7 @@ export const SearchableMultiSelect: React.FC<SearchableMultiSelectProps> = (
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, toggleMenu]);
+  }, [isOpen]);
 
   const sizeClasses = {
     sm: "h-8 text-sm",

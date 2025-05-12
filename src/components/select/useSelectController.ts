@@ -50,7 +50,7 @@ export const useSelectController = (
     } else {
       openMenu();
     }
-  }, [isOpen, openMenu, closeMenu]);
+  }, [isOpen]);
 
   const selectOption = useCallback(
     (option: SelectOption) => {

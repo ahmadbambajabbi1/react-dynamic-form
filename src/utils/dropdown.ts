@@ -1,5 +1,5 @@
-// src/utils/dropdown.ts - Enhanced version with dialog support and scroll handling
-import { useEffect, useRef, useState } from "react";
+// src/utils/dropdown.ts - Fixed version with infinite loop prevention
+import { useEffect, useRef, useState, useCallback } from "react";
 
 // Enhanced position calculation with dialog support
 export const determineDropdownPosition = (
@@ -74,6 +74,7 @@ export const determineDropdownPosition = (
 
   return { position, style };
 };
+
 export const useDropdownPosition = () => {
   const [position, setPosition] = useState<{
     position: "top" | "bottom";
@@ -85,88 +86,132 @@ export const useDropdownPosition = () => {
   const containerRef = useRef<HTMLElement | null>(null);
   const optionsRef = useRef<any>(null);
 
-  // Function to recalculate position
-  const recalculatePosition = () => {
-    if (triggerRef.current) {
-      const newPosition = determineDropdownPosition(triggerRef.current, {
-        ...optionsRef.current,
-        container: containerRef.current,
-      });
-      setPosition(newPosition);
-    }
-  };
+  // Use this ref to prevent unnecessary state updates
+  const positionRef = useRef(position);
 
-  // Initialize position tracking
-  const initPositioning = (
-    trigger: HTMLElement | null,
-    dropdown: HTMLElement | null,
-    container: HTMLElement | null = null,
-    options?: {
-      dropdownHeight?: number;
-      margin?: number;
-      preferredPosition?: "top" | "bottom";
-    }
-  ) => {
-    triggerRef.current = trigger;
-    dropdownRef.current = dropdown;
-    containerRef.current = container;
-    optionsRef.current = options || {};
+  // Function to recalculate position with state update prevention
+  const recalculatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
 
-    recalculatePosition();
-
-    // Handle scroll events on all possible scroll containers
-    const handleScroll = () => {
-      requestAnimationFrame(recalculatePosition);
-    };
-
-    // Find all possible scroll containers
-    const scrollContainers: HTMLElement[] = [];
-
-    // Add document as default
-    scrollContainers.push(document.documentElement);
-
-    // Add dialog or other direct container if available
-    if (container) {
-      scrollContainers.push(container);
-
-      // Find scrollable parents of the container
-      let parent = container.parentElement;
-      while (parent) {
-        const style = window.getComputedStyle(parent);
-        if (
-          /(auto|scroll|overlay)/.test(
-            style.overflow + style.overflowY + style.overflowX
-          )
-        ) {
-          scrollContainers.push(parent);
-        }
-        parent = parent.parentElement;
-      }
-    }
-
-    // Add event listeners
-    scrollContainers.forEach((container) => {
-      container.addEventListener("scroll", handleScroll, { passive: true });
+    const newPosition = determineDropdownPosition(triggerRef.current, {
+      ...optionsRef.current,
+      container: containerRef.current,
     });
 
-    // Handle window resize
-    window.addEventListener("resize", handleScroll, { passive: true });
+    // Compare with current position to prevent unnecessary updates
+    const currentStyle = positionRef.current.style;
+    const newStyle = newPosition.style;
 
-    // Return cleanup function
-    return () => {
+    // Only update if there are meaningful changes
+    const hasChanged =
+      positionRef.current.position !== newPosition.position ||
+      currentStyle.top !== newStyle.top ||
+      currentStyle.bottom !== newStyle.bottom ||
+      currentStyle.left !== newStyle.left ||
+      currentStyle.width !== newStyle.width ||
+      currentStyle.maxHeight !== newStyle.maxHeight;
+
+    if (hasChanged) {
+      positionRef.current = newPosition;
+      setPosition(newPosition);
+    }
+  }, []);
+
+  // Initialize position tracking with proper cleanup
+  const initPositioning = useCallback(
+    (
+      trigger: HTMLElement | null,
+      dropdown: HTMLElement | null,
+      container: HTMLElement | null = null,
+      options?: {
+        dropdownHeight?: number;
+        margin?: number;
+        preferredPosition?: "top" | "bottom";
+      }
+    ) => {
+      triggerRef.current = trigger;
+      dropdownRef.current = dropdown;
+      containerRef.current = container;
+      optionsRef.current = options || {};
+
+      // Initial calculation
+      recalculatePosition();
+
+      // Find all possible scroll containers
+      const scrollContainers: HTMLElement[] = [];
+
+      // Add document as default
+      scrollContainers.push(document.documentElement);
+
+      // Add dialog or other direct container if available
+      if (container) {
+        scrollContainers.push(container);
+
+        // Find scrollable parents of the container
+        let parent = container.parentElement;
+        while (parent) {
+          const style = window.getComputedStyle(parent);
+          if (
+            /(auto|scroll|overlay)/.test(
+              style.overflow + style.overflowY + style.overflowX
+            )
+          ) {
+            scrollContainers.push(parent);
+          }
+          parent = parent.parentElement;
+        }
+      } else if (trigger) {
+        // If no container but we have a trigger, find its scrollable parents
+        let scrollableParent = findScrollableParent(trigger);
+        if (scrollableParent && !scrollContainers.includes(scrollableParent)) {
+          scrollContainers.push(scrollableParent);
+        }
+      }
+
+      // Add event handlers with throttling to prevent excessive updates
+      let ticking = false;
+      const handleScrollOrResize = () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            recalculatePosition();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
+
+      // Add event listeners
       scrollContainers.forEach((container) => {
-        container.removeEventListener("scroll", handleScroll);
+        container.addEventListener("scroll", handleScrollOrResize, {
+          passive: true,
+        });
       });
-      window.removeEventListener("resize", handleScroll);
-    };
-  };
+
+      // Handle window resize
+      window.addEventListener("resize", handleScrollOrResize, {
+        passive: true,
+      });
+
+      // Return cleanup function
+      return () => {
+        scrollContainers.forEach((container) => {
+          container.removeEventListener("scroll", handleScrollOrResize);
+        });
+        window.removeEventListener("resize", handleScrollOrResize);
+      };
+    },
+    [recalculatePosition]
+  );
 
   return {
     position,
     initPositioning,
-    recalculatePosition,
+    recalculatePosition: useCallback(() => {
+      requestAnimationFrame(recalculatePosition);
+    }, [recalculatePosition]),
   };
 };
+
 export const findDialogContainer = (
   element: HTMLElement | null
 ): HTMLElement | null => {
@@ -195,7 +240,8 @@ export const findDialogContainer = (
 
   return null;
 };
-const findScrollableParent = (
+
+export const findScrollableParent = (
   element: HTMLElement | null
 ): HTMLElement | null => {
   if (!element || element === document.body) return document.body;

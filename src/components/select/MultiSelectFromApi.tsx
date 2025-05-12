@@ -60,7 +60,7 @@ export const MultiSelectFromApi = (props: any) => {
 
       return cleanup;
     }
-  }, [isOpen, initPositioning]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -79,7 +79,7 @@ export const MultiSelectFromApi = (props: any) => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, toggleMenu]);
+  }, [isOpen]);
 
   const sizeClasses = {
     sm: "h-8 text-sm",
