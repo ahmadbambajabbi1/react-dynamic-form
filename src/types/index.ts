@@ -267,6 +267,11 @@ export interface Controller {
     | { label: string; value: string | number }[]
     | "from-api";
   apiUrl?: string;
+  mapControllerType?: "group" | "each";
+  mapController?: (
+    value: any,
+    values?: any
+  ) => Controller[] | Promise<Controller[]>;
   transformResponse?: (data: any) => SelectOption[];
   searchParam?: string;
   minSearchLength?: number;

@@ -54,7 +54,10 @@ const FormElementHandler: React.FC<FormElementHandlerProps> = ({
       selectedValues !== ""
     ) {
       try {
-        const newControllers = await controller.mapController(selectedValues);
+        const newControllers = await controller.mapController(
+          selectedValues,
+          form?.getValues()
+        );
         setMappedControllers(newControllers);
       } catch (error) {
         console.error("Error mapping controllers:", error);
